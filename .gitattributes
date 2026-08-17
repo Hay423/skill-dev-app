@@ -1,0 +1,17 @@
+# Normalise line endings to LF everywhere, in the repo and in the working tree.
+# Without this, core.autocrlf=true on Windows checks out CRLF and Prettier
+# (endOfLine: "lf") fails on a fresh clone.
+* text=auto eol=lf
+
+# Binary assets must never be touched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+
+# Generated — collapse in diffs and exclude from language stats.
+package-lock.json linguist-generated=true -diff
