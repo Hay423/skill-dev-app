@@ -26,7 +26,7 @@
 
 <header class="mb-3">
 	<h1 class="text-2xl font-bold">Drills</h1>
-	<p class="text-sm text-slate-400">{visible.length} drills</p>
+	<p class="text-sm text-surface-600-400">{visible.length} drills</p>
 </header>
 
 <div class="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -34,8 +34,8 @@
 		type="button"
 		onclick={() => (selected = 'all')}
 		class="shrink-0 rounded-full border px-3 py-1.5 text-sm {selected === 'all'
-			? 'border-pitch-500 bg-pitch-600 text-white'
-			: 'border-slate-700 text-slate-300'}"
+			? 'preset-filled-primary-500'
+			: 'preset-outlined-surface-200-800'}"
 	>
 		All
 	</button>
@@ -44,8 +44,8 @@
 			type="button"
 			onclick={() => (selected = category)}
 			class="shrink-0 rounded-full border px-3 py-1.5 text-sm {selected === category
-				? 'border-pitch-500 bg-pitch-600 text-white'
-				: 'border-slate-700 text-slate-300'}"
+				? 'preset-filled-primary-500'
+				: 'preset-outlined-surface-200-800'}"
 		>
 			{SKILL_CATEGORY_LABELS[category]}
 		</button>
@@ -57,14 +57,14 @@
 		<li>
 			<a
 				href="/drills/{drill.slug}"
-				class="block rounded-xl border border-slate-800 bg-slate-900 p-3 active:bg-slate-800"
+				class="block rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 active:bg-surface-200-800"
 			>
 				<div class="flex items-start justify-between gap-3">
 					<h2 class="font-semibold">{drill.name}</h2>
-					<span class="shrink-0 text-xs text-slate-500">{drill.duration_minutes} min</span>
+					<span class="shrink-0 text-xs text-surface-500">{drill.duration_minutes} min</span>
 				</div>
-				<p class="mt-1 text-sm text-slate-400">{drill.summary}</p>
-				<p class="mt-2 flex gap-2 text-xs text-slate-500">
+				<p class="mt-1 text-sm text-surface-600-400">{drill.summary}</p>
+				<p class="mt-2 flex gap-2 text-xs text-surface-500">
 					<span>{SKILL_CATEGORY_LABELS[drill.category]}</span>
 					<span aria-hidden="true">·</span>
 					<span>{DIFFICULTY_LABELS[drill.difficulty]}</span>

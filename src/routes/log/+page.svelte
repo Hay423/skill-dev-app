@@ -90,16 +90,16 @@
 
 <header class="mb-4">
 	<h1 class="text-2xl font-bold">Log reps</h1>
-	<p class="text-sm text-slate-400">Tap as you go — it saves offline.</p>
+	<p class="text-sm text-surface-600-400">Tap as you go — it saves offline.</p>
 </header>
 
 <div class="space-y-3">
 	<label class="block">
-		<span class="text-xs tracking-wide text-slate-400 uppercase">Drill</span>
+		<span class="text-xs tracking-wide text-surface-600-400 uppercase">Drill</span>
 		<select
 			value={drillId}
 			onchange={(e) => onDrillChange(e.currentTarget.value)}
-			class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+			class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-100-900 px-3 py-2"
 		>
 			<option value="">Freeform (no drill)</option>
 			{#each drills as drill (drill.id)}
@@ -110,10 +110,10 @@
 
 	{#if !drillId}
 		<label class="block">
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Skill</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Skill</span>
 			<select
 				bind:value={category}
-				class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+				class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-100-900 px-3 py-2"
 			>
 				{#each SKILL_CATEGORIES as c (c)}
 					<option value={c}>{SKILL_CATEGORY_LABELS[c]}</option>
@@ -123,15 +123,15 @@
 	{/if}
 
 	<div>
-		<span class="text-xs tracking-wide text-slate-400 uppercase">Foot</span>
+		<span class="text-xs tracking-wide text-surface-600-400 uppercase">Foot</span>
 		<div class="mt-1 flex gap-2">
 			{#each [['', 'N/A'], ['left', 'Left'], ['right', 'Right'], ['both', 'Both']] as [value, label] (value)}
 				<button
 					type="button"
 					onclick={() => (foot = value as Foot | '')}
 					class="tap-target flex-1 rounded-xl border px-2 text-sm {foot === value
-						? 'border-pitch-500 bg-pitch-600 text-white'
-						: 'border-slate-700 text-slate-300'}"
+						? 'preset-filled-primary-500'
+						: 'preset-outlined-surface-200-800'}"
 				>
 					{label}
 				</button>
@@ -140,11 +140,11 @@
 	</div>
 </div>
 
-<div class="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-4 text-center">
+<div class="mt-6 rounded-xl border border-surface-200-800 bg-surface-100-900 p-4 text-center">
 	<p class="text-5xl font-bold tabular-nums">
-		{successes}<span class="text-slate-600">/</span>{attempts}
+		{successes}<span class="text-surface-500">/</span>{attempts}
 	</p>
-	<p class="mt-1 text-sm text-slate-400">
+	<p class="mt-1 text-sm text-surface-600-400">
 		{formatAccuracy(accuracy)}{target ? ` · target ${target} reps` : ''}
 	</p>
 </div>
@@ -153,14 +153,14 @@
 	<button
 		type="button"
 		onclick={hit}
-		class="bg-pitch-600 active:bg-pitch-700 rounded-2xl py-8 text-xl font-bold text-white"
+		class="preset-filled-primary-500 rounded-2xl py-8 text-xl font-bold"
 	>
 		Hit
 	</button>
 	<button
 		type="button"
 		onclick={miss}
-		class="rounded-2xl bg-slate-700 py-8 text-xl font-bold text-white active:bg-slate-600"
+		class="preset-filled-surface-500 rounded-2xl py-8 text-xl font-bold"
 	>
 		Miss
 	</button>
@@ -171,7 +171,7 @@
 		type="button"
 		onclick={undo}
 		disabled={attempts === 0}
-		class="tap-target flex-1 rounded-xl border border-slate-700 py-2 text-sm disabled:opacity-40"
+		class="tap-target preset-outlined-surface-200-800 flex-1 rounded-xl py-2 text-sm disabled:opacity-40"
 	>
 		Undo
 	</button>
@@ -179,21 +179,21 @@
 		type="button"
 		onclick={reset}
 		disabled={attempts === 0}
-		class="tap-target flex-1 rounded-xl border border-slate-700 py-2 text-sm disabled:opacity-40"
+		class="tap-target preset-outlined-surface-200-800 flex-1 rounded-xl py-2 text-sm disabled:opacity-40"
 	>
 		Reset
 	</button>
 </div>
 
 {#if error}
-	<p class="mt-3 text-sm text-red-400">{error}</p>
+	<p class="mt-3 text-sm text-error-500">{error}</p>
 {/if}
 
 <button
 	type="button"
 	onclick={save}
 	disabled={attempts === 0 || saving}
-	class="tap-target mt-4 w-full rounded-xl bg-white py-3 font-semibold text-slate-900 disabled:opacity-40"
+	class="tap-target preset-filled-primary-500 mt-4 w-full rounded-xl py-3 font-semibold disabled:opacity-40"
 >
 	{saving ? 'Saving…' : 'Save set'}
 </button>

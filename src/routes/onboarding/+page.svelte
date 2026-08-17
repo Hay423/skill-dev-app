@@ -115,11 +115,11 @@
 </script>
 
 <header class="mb-4">
-	<p class="text-xs tracking-wide text-slate-400 uppercase">Step {step} of {totalSteps}</p>
+	<p class="text-xs tracking-wide text-surface-600-400 uppercase">Step {step} of {totalSteps}</p>
 	<h1 class="text-2xl font-bold">{STEP_TITLES[step - 1]}</h1>
 	<div class="mt-3 flex gap-1">
 		{#each STEP_TITLES as _, i (i)}
-			<div class="h-1 flex-1 rounded-full {i < step ? 'bg-pitch-500' : 'bg-slate-800'}"></div>
+			<div class="h-1 flex-1 rounded-full {i < step ? 'bg-primary-500' : 'bg-surface-100-900'}"></div>
 		{/each}
 	</div>
 </header>
@@ -127,15 +127,15 @@
 {#if step === 1}
 	<div class="space-y-5">
 		<div>
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Primary position</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Primary position</span>
 			<div class="mt-2 grid grid-cols-2 gap-2">
 				{#each POSITIONS as p (p)}
 					<button
 						type="button"
 						onclick={() => (primary_position = p)}
 						class="tap-target rounded-xl border px-2 py-2 text-sm {primary_position === p
-							? 'border-pitch-500 bg-pitch-600 text-white'
-							: 'border-slate-700 text-slate-300'}"
+							? 'preset-filled-primary-500'
+							: 'preset-outlined-surface-200-800'}"
 					>
 						{POSITION_LABELS[p]}
 					</button>
@@ -144,11 +144,11 @@
 		</div>
 
 		<label class="block">
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Secondary position</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Secondary position</span>
 			<select
 				value={secondary_position ?? ''}
 				onchange={(e) => (secondary_position = (e.currentTarget.value || null) as Position | null)}
-				class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+				class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-100-900 px-3 py-2"
 			>
 				<option value="">None</option>
 				{#each POSITIONS as p (p)}
@@ -160,15 +160,15 @@
 {:else if step === 2}
 	<div class="space-y-5">
 		<div>
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Age group</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Age group</span>
 			<div class="mt-2 grid grid-cols-3 gap-2">
 				{#each AGE_GROUPS as a (a)}
 					<button
 						type="button"
 						onclick={() => (age_group = a)}
 						class="tap-target rounded-xl border px-2 py-2 text-sm {age_group === a
-							? 'border-pitch-500 bg-pitch-600 text-white'
-							: 'border-slate-700 text-slate-300'}"
+							? 'preset-filled-primary-500'
+							: 'preset-outlined-surface-200-800'}"
 					>
 						{AGE_GROUP_LABELS[a]}
 					</button>
@@ -177,15 +177,15 @@
 		</div>
 
 		<div>
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Experience</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Experience</span>
 			<div class="mt-2 grid grid-cols-1 gap-2">
 				{#each EXPERIENCE_LEVELS as ex (ex)}
 					<button
 						type="button"
 						onclick={() => (experience = ex)}
 						class="tap-target rounded-xl border px-3 py-2 text-left text-sm {experience === ex
-							? 'border-pitch-500 bg-pitch-600 text-white'
-							: 'border-slate-700 text-slate-300'}"
+							? 'preset-filled-primary-500'
+							: 'preset-outlined-surface-200-800'}"
 					>
 						{EXPERIENCE_LEVEL_LABELS[ex]}
 					</button>
@@ -196,12 +196,12 @@
 {:else if step === 3}
 	<div class="space-y-5">
 		<div>
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Sessions per week</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Sessions per week</span>
 			<div class="mt-2 flex items-center gap-3">
 				<button
 					type="button"
 					onclick={() => adjustSessions(-1)}
-					class="tap-target rounded-xl border border-slate-700 px-4 text-xl active:bg-slate-800"
+					class="tap-target preset-outlined-surface-200-800 rounded-xl px-4 text-xl"
 				>
 					−
 				</button>
@@ -209,7 +209,7 @@
 				<button
 					type="button"
 					onclick={() => adjustSessions(1)}
-					class="tap-target rounded-xl border border-slate-700 px-4 text-xl active:bg-slate-800"
+					class="tap-target preset-outlined-surface-200-800 rounded-xl px-4 text-xl"
 				>
 					+
 				</button>
@@ -217,15 +217,15 @@
 		</div>
 
 		<div>
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Available days</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Available days</span>
 			<div class="mt-2 grid grid-cols-7 gap-1">
 				{#each WEEKDAYS as d (d)}
 					<button
 						type="button"
 						onclick={() => toggleDay(d)}
 						class="tap-target rounded-xl border px-1 text-xs {available_days.includes(d)
-							? 'border-pitch-500 bg-pitch-600 text-white'
-							: 'border-slate-700 text-slate-300'}"
+							? 'preset-filled-primary-500'
+							: 'preset-outlined-surface-200-800'}"
 					>
 						{WEEKDAY_LABELS[d]}
 					</button>
@@ -234,15 +234,15 @@
 		</div>
 
 		<div>
-			<span class="text-xs tracking-wide text-slate-400 uppercase">Equipment access</span>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Equipment access</span>
 			<div class="mt-2 grid grid-cols-2 gap-2">
 				{#each EQUIPMENT_ACCESS as e (e)}
 					<button
 						type="button"
 						onclick={() => toggleEquipment(e)}
 						class="tap-target rounded-xl border px-2 py-2 text-sm {equipment_access.includes(e)
-							? 'border-pitch-500 bg-pitch-600 text-white'
-							: 'border-slate-700 text-slate-300'}"
+							? 'preset-filled-primary-500'
+							: 'preset-outlined-surface-200-800'}"
 					>
 						{EQUIPMENT_ACCESS_LABELS[e]}
 					</button>
@@ -252,7 +252,7 @@
 	</div>
 {:else if step === 4}
 	<div class="space-y-5">
-		<p class="rounded-xl border border-slate-800 bg-slate-900 p-3 text-sm text-slate-400">
+		<p class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 text-sm text-surface-600-400">
 			This only affects which drills and future training content get excluded — it's not medical
 			advice and nothing is treated here. Completely optional.
 		</p>
@@ -260,22 +260,22 @@
 		{#if injuries.length > 0}
 			<ul class="space-y-2">
 				{#each injuries as injury, i (i)}
-					<li class="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
+					<li class="flex items-start gap-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
 						<div class="min-w-0 flex-1">
 							<p class="font-medium">
 								{BODY_REGION_LABELS[injury.region]} · {INJURY_STATUS_LABELS[injury.status]}
 							</p>
 							{#if injury.note}
-								<p class="text-xs text-slate-400">{injury.note}</p>
+								<p class="text-xs text-surface-600-400">{injury.note}</p>
 							{/if}
 							{#if injury.since}
-								<p class="text-xs text-slate-500">Since {injury.since}</p>
+								<p class="text-xs text-surface-500">Since {injury.since}</p>
 							{/if}
 						</div>
 						<button
 							type="button"
 							onclick={() => removeInjury(i)}
-							class="tap-target rounded-xl border border-slate-700 px-3 text-xs text-slate-300 active:bg-slate-800"
+							class="tap-target preset-outlined-error-500 rounded-xl px-3 text-xs"
 						>
 							Remove
 						</button>
@@ -284,14 +284,14 @@
 			</ul>
 		{/if}
 
-		<div class="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
-			<p class="text-xs tracking-wide text-slate-400 uppercase">Add an injury</p>
+		<div class="space-y-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
+			<p class="text-xs tracking-wide text-surface-600-400 uppercase">Add an injury</p>
 
 			<label class="block">
-				<span class="text-xs tracking-wide text-slate-400 uppercase">Region</span>
+				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Region</span>
 				<select
 					bind:value={draftRegion}
-					class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2"
+					class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2"
 				>
 					{#each BODY_REGIONS as r (r)}
 						<option value={r}>{BODY_REGION_LABELS[r]}</option>
@@ -300,15 +300,15 @@
 			</label>
 
 			<div>
-				<span class="text-xs tracking-wide text-slate-400 uppercase">Status</span>
+				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Status</span>
 				<div class="mt-1 flex gap-2">
 					{#each INJURY_STATUSES as s (s)}
 						<button
 							type="button"
 							onclick={() => (draftStatus = s)}
 							class="tap-target flex-1 rounded-xl border px-2 text-xs {draftStatus === s
-								? 'border-pitch-500 bg-pitch-600 text-white'
-								: 'border-slate-700 text-slate-300'}"
+								? 'preset-filled-primary-500'
+								: 'preset-outlined-surface-200-800'}"
 						>
 							{INJURY_STATUS_LABELS[s]}
 						</button>
@@ -317,28 +317,28 @@
 			</div>
 
 			<label class="block">
-				<span class="text-xs tracking-wide text-slate-400 uppercase">Note (optional)</span>
+				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Note (optional)</span>
 				<input
 					type="text"
 					bind:value={draftNote}
 					placeholder="e.g. grade 1 strain"
-					class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+					class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2 text-sm"
 				/>
 			</label>
 
 			<label class="block">
-				<span class="text-xs tracking-wide text-slate-400 uppercase">Since (optional)</span>
+				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Since (optional)</span>
 				<input
 					type="date"
 					bind:value={draftSince}
-					class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+					class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2 text-sm"
 				/>
 			</label>
 
 			<button
 				type="button"
 				onclick={addInjury}
-				class="tap-target w-full rounded-xl border border-slate-700 py-2 text-sm font-semibold active:bg-slate-800"
+				class="tap-target preset-outlined-surface-200-800 w-full rounded-xl py-2 text-sm font-semibold"
 			>
 				Add injury
 			</button>
@@ -347,7 +347,7 @@
 {/if}
 
 {#if error}
-	<p class="mt-3 text-sm text-red-400">{error}</p>
+	<p class="mt-3 text-sm text-error-500">{error}</p>
 {/if}
 
 <div class="mt-6 flex gap-3">
@@ -355,7 +355,7 @@
 		<button
 			type="button"
 			onclick={back}
-			class="tap-target flex-1 rounded-xl border border-slate-700 py-3 font-semibold active:bg-slate-800"
+			class="tap-target preset-outlined-surface-200-800 flex-1 rounded-xl py-3 font-semibold"
 		>
 			Back
 		</button>
@@ -365,7 +365,7 @@
 		<button
 			type="button"
 			onclick={next}
-			class="bg-pitch-600 active:bg-pitch-700 tap-target flex-1 rounded-xl py-3 font-semibold text-white"
+			class="preset-filled-primary-500 tap-target flex-1 rounded-xl py-3 font-semibold"
 		>
 			Continue
 		</button>
@@ -374,7 +374,7 @@
 			type="button"
 			onclick={finish}
 			disabled={saving}
-			class="bg-pitch-600 active:bg-pitch-700 tap-target flex-1 rounded-xl py-3 font-semibold text-white disabled:opacity-40"
+			class="preset-filled-primary-500 tap-target flex-1 rounded-xl py-3 font-semibold disabled:opacity-40"
 		>
 			{saving ? 'Saving…' : 'Finish setup'}
 		</button>

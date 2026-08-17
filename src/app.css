@@ -1,12 +1,8 @@
 @import 'tailwindcss';
-
-/* Design tokens. Tailwind v4 is CSS-first — add theme values here, not in a JS config. */
-@theme {
-	--color-pitch-50: #f0fdf4;
-	--color-pitch-500: #22c55e;
-	--color-pitch-600: #16a34a;
-	--color-pitch-700: #15803d;
-}
+@plugin '@tailwindcss/forms';
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton-svelte';
+@import '@skeletonlabs/skeleton/themes/mint';
 
 :root {
 	color-scheme: dark;
@@ -16,8 +12,8 @@
 
 html,
 body {
-	background-color: var(--color-slate-950);
-	color: var(--color-slate-100);
+	background-color: var(--color-surface-950);
+	color: var(--color-surface-50);
 	/* On-field use: no rubber-band scroll, no accidental text selection on taps. */
 	overscroll-behavior-y: none;
 	-webkit-tap-highlight-color: transparent;

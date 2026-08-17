@@ -15,7 +15,7 @@
 </script>
 
 <nav
-	class="fixed inset-x-0 bottom-0 z-50 border-t border-slate-800 bg-slate-900/95 backdrop-blur"
+	class="fixed inset-x-0 bottom-0 z-50 border-t border-surface-200-800 bg-surface-100-900/95 backdrop-blur"
 	style="padding-bottom: var(--inset-bottom)"
 >
 	<ul class="mx-auto flex max-w-lg">
@@ -26,8 +26,8 @@
 					class="tap-target flex flex-col items-center gap-0.5 py-2 text-xs transition-colors {isActive(
 						link.href
 					)
-						? 'text-pitch-500'
-						: 'text-slate-400'}"
+						? 'text-primary-500'
+						: 'text-surface-600-400'}"
 					aria-current={isActive(link.href) ? 'page' : undefined}
 				>
 					<span class="text-lg leading-none" aria-hidden="true">{link.icon}</span>

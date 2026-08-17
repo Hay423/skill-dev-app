@@ -19,6 +19,15 @@ Two core loops:
 - **SvelteKit 2** + **Svelte 5** (runes: `$state`, `$derived`, `$effect`, `$props`)
 - **TypeScript**, strict
 - **Tailwind v4** — CSS-first config in `src/app.css`, no `tailwind.config.js`
+- **Skeleton** (`@skeletonlabs/skeleton` + `@skeletonlabs/skeleton-svelte`) for theming and
+  component presets, layered on Tailwind. Theme is `mint` (green primary, closest built-in
+  match to the sport), forced dark-only via `class="dark" data-theme="mint"` on `<html>`
+  in `src/app.html`. Use Skeleton's color-pairing tokens (`surface-100-900`,
+  `text-surface-600-400`, etc. — light shade first, dark shade second, resolved via CSS
+  `light-dark()`) instead of raw `slate-*` Tailwind colors, and preset utility classes
+  (`preset-filled-primary-500`, `preset-outlined-surface-200-800`, `preset-tonal-*`) instead
+  of hand-assembled `bg-*`/`border-*`/`text-*` combinations for buttons and chips. Don't
+  reintroduce the old `pitch-*` custom theme tokens — `primary-*` replaces them.
 - **Dexie** over IndexedDB for local-first storage
 - **adapter-static** in SPA mode (`fallback: index.html`) — deploys to any static host
 - **Vitest** for unit tests

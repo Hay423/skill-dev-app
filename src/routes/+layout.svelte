@@ -20,11 +20,11 @@
 <div class="mx-auto flex min-h-full max-w-lg flex-col">
 	<main class="flex-1 px-4 pt-4 pb-24">
 		{#await ready}
-			<p class="pt-8 text-center text-sm text-slate-500">Loading…</p>
+			<p class="pt-8 text-center text-sm text-surface-600-400">Loading…</p>
 		{:then}
 			{@render children()}
 		{:catch error}
-			<p class="pt-8 text-center text-sm text-red-400">
+			<p class="pt-8 text-center text-sm text-error-500">
 				Could not open local storage: {error.message}
 			</p>
 		{/await}
