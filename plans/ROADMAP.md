@@ -31,6 +31,10 @@ Content arrives as supplied files through a validated importer.
 Sequenced ahead of guided sessions: it changes the Dexie schema and the `Drill`
 shape, so doing it first avoids reworking session code.
 
+**Phase 1 (profile foundation) is done** — onboarding, `/profile`, Dexie v2.
+Phases 2–6 (content pipeline, recommendations, strength/conditioning
+programs) are not started; see the open questions in player-profile.md.
+
 ### 1. Guided sessions
 
 The second half of the core loop. Pick drills → run through them one at a time

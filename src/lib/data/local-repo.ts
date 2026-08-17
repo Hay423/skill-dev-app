@@ -1,7 +1,20 @@
-import type { Drill, RepLog, Session, SyncMeta, Uuid } from '$lib/types';
+import {
+	PLAYER_PROFILE_SCHEMA_VERSION,
+	SINGLETON_PROFILE_ID,
+	type Drill,
+	type EquipmentAccess,
+	type Exercise,
+	type PlayerProfile,
+	type ProgramEnrolment,
+	type RepLog,
+	type Session,
+	type SyncMeta,
+	type TrainingProgram,
+	type Uuid
+} from '$lib/types';
 import { localDate, newId, nowIso } from '$lib/util/time';
 import { db } from './db';
-import type { NewRepLog, Repo } from './repo';
+import type { NewRepLog, ProfileInput, Repo } from './repo';
 
 /** Sync bookkeeping for a freshly created, not-yet-pushed row. */
 function freshMeta(at = nowIso()): SyncMeta {
@@ -126,6 +139,117 @@ export class LocalRepo implements Repo {
 		if (filter?.category) rows = rows.filter((r) => r.category === filter.category);
 		rows.sort((a, b) => b.recorded_at.localeCompare(a.recorded_at));
 		return filter?.limit ? rows.slice(0, filter.limit) : rows;
+	}
+
+	async getProfile(): Promise<PlayerProfile | undefined> {
+		const row = await db.player_profile.get(SINGLETON_PROFILE_ID);
+		return row && row._deleted === 0 ? row : undefined;
+	}
+
+	async saveProfile(input: ProfileInput): Promise<PlayerProfile> {
+		const existing = await db.player_profile.get(SINGLETON_PROFILE_ID);
+		const at = nowIso();
+		const profile: PlayerProfile = {
+			id: SINGLETON_PROFILE_ID,
+			user_id: existing?.user_id ?? null,
+			display_name: input.display_name ?? null,
+			primary_position: input.primary_position,
+			secondary_position: input.secondary_position ?? null,
+			age_group: input.age_group,
+			date_of_birth: input.date_of_birth ?? null,
+			experience: input.experience,
+			sessions_per_week: input.sessions_per_week ?? 0,
+			available_days: input.available_days ?? [],
+			equipment_access: input.equipment_access ?? [],
+			injuries: input.injuries ?? [],
+			schema_version: PLAYER_PROFILE_SCHEMA_VERSION,
+			created_at: existing?.created_at ?? at,
+			updated_at: at,
+			synced_at: existing?.synced_at ?? null,
+			_dirty: 1,
+			_deleted: 0
+		};
+		await db.player_profile.put(profile);
+		return profile;
+	}
+
+	listPositions() {
+		return db.positions.toArray();
+	}
+
+	async listExercises(filter?: {
+		movement_pattern?: Exercise['movement_pattern'];
+		equipment_access?: EquipmentAccess[];
+	}) {
+		let rows = filter?.movement_pattern
+			? await db.exercises.where('movement_pattern').equals(filter.movement_pattern).toArray()
+			: await db.exercises.toArray();
+		if (filter?.equipment_access) {
+			const owned = new Set(filter.equipment_access);
+			rows = rows.filter((e) => e.equipment_required.every((eq) => owned.has(eq)));
+		}
+		return rows;
+	}
+
+	async listPrograms(filter?: {
+		discipline?: TrainingProgram['discipline'];
+		phase?: TrainingProgram['phase'];
+	}) {
+		let rows = await db.programs.toArray();
+		if (filter?.discipline) rows = rows.filter((p) => p.discipline === filter.discipline);
+		if (filter?.phase) rows = rows.filter((p) => p.phase === filter.phase);
+		return rows;
+	}
+
+	async getProgramPlan(program_id: Uuid) {
+		const program = await db.programs.get(program_id);
+		if (!program) return undefined;
+		const [weeks, sessions] = await Promise.all([
+			db.program_weeks.where('program_id').equals(program_id).toArray(),
+			db.program_sessions.where('program_id').equals(program_id).toArray()
+		]);
+		const sessionIds = sessions.map((s) => s.id);
+		const items = sessionIds.length
+			? await db.program_items.where('session_id').anyOf(sessionIds).toArray()
+			: [];
+		return { program, weeks, sessions, items };
+	}
+
+	/** The most recent enrolment that hasn't been completed. */
+	async activeEnrolment(): Promise<ProgramEnrolment | undefined> {
+		const recent = await db.program_enrolments.orderBy('started_at').reverse().limit(20).toArray();
+		return recent.find((e) => e.completed_at === null && e._deleted === 0);
+	}
+
+	async enrol(program_id: Uuid): Promise<ProgramEnrolment> {
+		const at = nowIso();
+		const enrolment: ProgramEnrolment = {
+			id: newId(),
+			user_id: null,
+			program_id,
+			started_at: at,
+			current_week: 1,
+			completed_at: null,
+			...freshMeta(at)
+		};
+		await db.program_enrolments.add(enrolment);
+		return enrolment;
+	}
+
+	async advanceWeek(enrolment_id: Uuid): Promise<ProgramEnrolment | undefined> {
+		const enrolment = await db.program_enrolments.get(enrolment_id);
+		if (!enrolment) return undefined;
+		const program = await db.programs.get(enrolment.program_id);
+		const next_week = enrolment.current_week + 1;
+		const at = nowIso();
+		const done = program ? next_week > program.weeks : false;
+		await db.program_enrolments.update(enrolment_id, {
+			current_week: next_week,
+			completed_at: done ? at : null,
+			updated_at: at,
+			_dirty: 1
+		});
+		return db.program_enrolments.get(enrolment_id);
 	}
 }
 

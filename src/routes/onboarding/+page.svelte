@@ -1,0 +1,382 @@
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { repo } from '$lib/data';
+	import type { ProfileInput } from '$lib/data/repo';
+	import {
+		AGE_GROUPS,
+		AGE_GROUP_LABELS,
+		BODY_REGIONS,
+		BODY_REGION_LABELS,
+		EQUIPMENT_ACCESS,
+		EQUIPMENT_ACCESS_LABELS,
+		EXPERIENCE_LEVELS,
+		EXPERIENCE_LEVEL_LABELS,
+		INJURY_STATUSES,
+		INJURY_STATUS_LABELS,
+		POSITIONS,
+		POSITION_LABELS,
+		WEEKDAYS,
+		WEEKDAY_LABELS,
+		type AgeGroup,
+		type BodyRegion,
+		type EquipmentAccess,
+		type ExperienceLevel,
+		type InjuryFlag,
+		type InjuryStatus,
+		type Position,
+		type Weekday
+	} from '$lib/types';
+
+	const STEP_TITLES = ['Position', 'Age & experience', 'Availability & equipment', 'Injuries'];
+	const totalSteps = STEP_TITLES.length;
+
+	let step = $state(1);
+
+	let primary_position = $state<Position>('utility');
+	let secondary_position = $state<Position | null>(null);
+	let age_group = $state<AgeGroup>('senior');
+	let experience = $state<ExperienceLevel>('developing');
+	let sessions_per_week = $state(3);
+	let available_days = $state<Weekday[]>([]);
+	let equipment_access = $state<EquipmentAccess[]>([]);
+	let injuries = $state<InjuryFlag[]>([]);
+
+	let draftRegion = $state<BodyRegion>('ankle');
+	let draftStatus = $state<InjuryStatus>('current');
+	let draftNote = $state('');
+	let draftSince = $state('');
+
+	let saving = $state(false);
+	let error = $state<string | null>(null);
+
+	function toggleDay(d: Weekday) {
+		available_days = available_days.includes(d)
+			? available_days.filter((x) => x !== d)
+			: [...available_days, d];
+	}
+
+	function toggleEquipment(e: EquipmentAccess) {
+		equipment_access = equipment_access.includes(e)
+			? equipment_access.filter((x) => x !== e)
+			: [...equipment_access, e];
+	}
+
+	function adjustSessions(delta: number) {
+		sessions_per_week = Math.min(14, Math.max(0, sessions_per_week + delta));
+	}
+
+	function addInjury() {
+		injuries = [
+			...injuries,
+			{
+				region: draftRegion,
+				status: draftStatus,
+				note: draftNote.trim() || null,
+				since: draftSince || null
+			}
+		];
+		draftNote = '';
+		draftSince = '';
+	}
+
+	function removeInjury(index: number) {
+		injuries = injuries.filter((_, i) => i !== index);
+	}
+
+	function next() {
+		if (step < totalSteps) step += 1;
+	}
+
+	function back() {
+		if (step > 1) step -= 1;
+	}
+
+	async function finish() {
+		saving = true;
+		error = null;
+		try {
+			const input: ProfileInput = {
+				primary_position,
+				secondary_position,
+				age_group,
+				experience,
+				sessions_per_week,
+				available_days: $state.snapshot(available_days),
+				equipment_access: $state.snapshot(equipment_access),
+				injuries: $state.snapshot(injuries)
+			};
+			await repo.saveProfile(input);
+			await goto('/');
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Could not save profile';
+			saving = false;
+		}
+	}
+</script>
+
+<header class="mb-4">
+	<p class="text-xs tracking-wide text-slate-400 uppercase">Step {step} of {totalSteps}</p>
+	<h1 class="text-2xl font-bold">{STEP_TITLES[step - 1]}</h1>
+	<div class="mt-3 flex gap-1">
+		{#each STEP_TITLES as _, i (i)}
+			<div class="h-1 flex-1 rounded-full {i < step ? 'bg-pitch-500' : 'bg-slate-800'}"></div>
+		{/each}
+	</div>
+</header>
+
+{#if step === 1}
+	<div class="space-y-5">
+		<div>
+			<span class="text-xs tracking-wide text-slate-400 uppercase">Primary position</span>
+			<div class="mt-2 grid grid-cols-2 gap-2">
+				{#each POSITIONS as p (p)}
+					<button
+						type="button"
+						onclick={() => (primary_position = p)}
+						class="tap-target rounded-xl border px-2 py-2 text-sm {primary_position === p
+							? 'border-pitch-500 bg-pitch-600 text-white'
+							: 'border-slate-700 text-slate-300'}"
+					>
+						{POSITION_LABELS[p]}
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<label class="block">
+			<span class="text-xs tracking-wide text-slate-400 uppercase">Secondary position</span>
+			<select
+				value={secondary_position ?? ''}
+				onchange={(e) => (secondary_position = (e.currentTarget.value || null) as Position | null)}
+				class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"
+			>
+				<option value="">None</option>
+				{#each POSITIONS as p (p)}
+					<option value={p}>{POSITION_LABELS[p]}</option>
+				{/each}
+			</select>
+		</label>
+	</div>
+{:else if step === 2}
+	<div class="space-y-5">
+		<div>
+			<span class="text-xs tracking-wide text-slate-400 uppercase">Age group</span>
+			<div class="mt-2 grid grid-cols-3 gap-2">
+				{#each AGE_GROUPS as a (a)}
+					<button
+						type="button"
+						onclick={() => (age_group = a)}
+						class="tap-target rounded-xl border px-2 py-2 text-sm {age_group === a
+							? 'border-pitch-500 bg-pitch-600 text-white'
+							: 'border-slate-700 text-slate-300'}"
+					>
+						{AGE_GROUP_LABELS[a]}
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<div>
+			<span class="text-xs tracking-wide text-slate-400 uppercase">Experience</span>
+			<div class="mt-2 grid grid-cols-1 gap-2">
+				{#each EXPERIENCE_LEVELS as ex (ex)}
+					<button
+						type="button"
+						onclick={() => (experience = ex)}
+						class="tap-target rounded-xl border px-3 py-2 text-left text-sm {experience === ex
+							? 'border-pitch-500 bg-pitch-600 text-white'
+							: 'border-slate-700 text-slate-300'}"
+					>
+						{EXPERIENCE_LEVEL_LABELS[ex]}
+					</button>
+				{/each}
+			</div>
+		</div>
+	</div>
+{:else if step === 3}
+	<div class="space-y-5">
+		<div>
+			<span class="text-xs tracking-wide text-slate-400 uppercase">Sessions per week</span>
+			<div class="mt-2 flex items-center gap-3">
+				<button
+					type="button"
+					onclick={() => adjustSessions(-1)}
+					class="tap-target rounded-xl border border-slate-700 px-4 text-xl active:bg-slate-800"
+				>
+					−
+				</button>
+				<p class="w-12 text-center text-2xl font-bold tabular-nums">{sessions_per_week}</p>
+				<button
+					type="button"
+					onclick={() => adjustSessions(1)}
+					class="tap-target rounded-xl border border-slate-700 px-4 text-xl active:bg-slate-800"
+				>
+					+
+				</button>
+			</div>
+		</div>
+
+		<div>
+			<span class="text-xs tracking-wide text-slate-400 uppercase">Available days</span>
+			<div class="mt-2 grid grid-cols-7 gap-1">
+				{#each WEEKDAYS as d (d)}
+					<button
+						type="button"
+						onclick={() => toggleDay(d)}
+						class="tap-target rounded-xl border px-1 text-xs {available_days.includes(d)
+							? 'border-pitch-500 bg-pitch-600 text-white'
+							: 'border-slate-700 text-slate-300'}"
+					>
+						{WEEKDAY_LABELS[d]}
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<div>
+			<span class="text-xs tracking-wide text-slate-400 uppercase">Equipment access</span>
+			<div class="mt-2 grid grid-cols-2 gap-2">
+				{#each EQUIPMENT_ACCESS as e (e)}
+					<button
+						type="button"
+						onclick={() => toggleEquipment(e)}
+						class="tap-target rounded-xl border px-2 py-2 text-sm {equipment_access.includes(e)
+							? 'border-pitch-500 bg-pitch-600 text-white'
+							: 'border-slate-700 text-slate-300'}"
+					>
+						{EQUIPMENT_ACCESS_LABELS[e]}
+					</button>
+				{/each}
+			</div>
+		</div>
+	</div>
+{:else if step === 4}
+	<div class="space-y-5">
+		<p class="rounded-xl border border-slate-800 bg-slate-900 p-3 text-sm text-slate-400">
+			This only affects which drills and future training content get excluded — it's not medical
+			advice and nothing is treated here. Completely optional.
+		</p>
+
+		{#if injuries.length > 0}
+			<ul class="space-y-2">
+				{#each injuries as injury, i (i)}
+					<li class="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
+						<div class="min-w-0 flex-1">
+							<p class="font-medium">
+								{BODY_REGION_LABELS[injury.region]} · {INJURY_STATUS_LABELS[injury.status]}
+							</p>
+							{#if injury.note}
+								<p class="text-xs text-slate-400">{injury.note}</p>
+							{/if}
+							{#if injury.since}
+								<p class="text-xs text-slate-500">Since {injury.since}</p>
+							{/if}
+						</div>
+						<button
+							type="button"
+							onclick={() => removeInjury(i)}
+							class="tap-target rounded-xl border border-slate-700 px-3 text-xs text-slate-300 active:bg-slate-800"
+						>
+							Remove
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+
+		<div class="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
+			<p class="text-xs tracking-wide text-slate-400 uppercase">Add an injury</p>
+
+			<label class="block">
+				<span class="text-xs tracking-wide text-slate-400 uppercase">Region</span>
+				<select
+					bind:value={draftRegion}
+					class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2"
+				>
+					{#each BODY_REGIONS as r (r)}
+						<option value={r}>{BODY_REGION_LABELS[r]}</option>
+					{/each}
+				</select>
+			</label>
+
+			<div>
+				<span class="text-xs tracking-wide text-slate-400 uppercase">Status</span>
+				<div class="mt-1 flex gap-2">
+					{#each INJURY_STATUSES as s (s)}
+						<button
+							type="button"
+							onclick={() => (draftStatus = s)}
+							class="tap-target flex-1 rounded-xl border px-2 text-xs {draftStatus === s
+								? 'border-pitch-500 bg-pitch-600 text-white'
+								: 'border-slate-700 text-slate-300'}"
+						>
+							{INJURY_STATUS_LABELS[s]}
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<label class="block">
+				<span class="text-xs tracking-wide text-slate-400 uppercase">Note (optional)</span>
+				<input
+					type="text"
+					bind:value={draftNote}
+					placeholder="e.g. grade 1 strain"
+					class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="text-xs tracking-wide text-slate-400 uppercase">Since (optional)</span>
+				<input
+					type="date"
+					bind:value={draftSince}
+					class="tap-target mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+				/>
+			</label>
+
+			<button
+				type="button"
+				onclick={addInjury}
+				class="tap-target w-full rounded-xl border border-slate-700 py-2 text-sm font-semibold active:bg-slate-800"
+			>
+				Add injury
+			</button>
+		</div>
+	</div>
+{/if}
+
+{#if error}
+	<p class="mt-3 text-sm text-red-400">{error}</p>
+{/if}
+
+<div class="mt-6 flex gap-3">
+	{#if step > 1}
+		<button
+			type="button"
+			onclick={back}
+			class="tap-target flex-1 rounded-xl border border-slate-700 py-3 font-semibold active:bg-slate-800"
+		>
+			Back
+		</button>
+	{/if}
+
+	{#if step < totalSteps}
+		<button
+			type="button"
+			onclick={next}
+			class="bg-pitch-600 active:bg-pitch-700 tap-target flex-1 rounded-xl py-3 font-semibold text-white"
+		>
+			Continue
+		</button>
+	{:else}
+		<button
+			type="button"
+			onclick={finish}
+			disabled={saving}
+			class="bg-pitch-600 active:bg-pitch-700 tap-target flex-1 rounded-xl py-3 font-semibold text-white disabled:opacity-40"
+		>
+			{saving ? 'Saving…' : 'Finish setup'}
+		</button>
+	{/if}
+</div>

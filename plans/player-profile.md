@@ -1,7 +1,42 @@
 # Plan — Player profile & position-driven training
 
-Status: **proposed**, not started. Supersedes nothing; slots in ahead of
-"Guided sessions" in [ROADMAP.md](ROADMAP.md).
+Status: **Phase 1 (profile foundation) done.** Supersedes nothing; slots in
+ahead of "Guided sessions" in [ROADMAP.md](ROADMAP.md).
+
+## Progress
+
+- **Phase 1 — Profile foundation. Done.**
+  - Types (`Position`, `AgeGroup`, `ExperienceLevel`, `EquipmentAccess`,
+    `BodyRegion`, `InjuryFlag`, `PlayerProfile`, `ProgramEnrolment`, plus the
+    Phase 2/4 content types so the Dexie bump only happens once) in
+    `src/lib/types.ts`.
+  - Dexie v2 schema (`src/lib/data/db.ts`) with a migration test proving v1
+    `sessions`/`rep_logs` survive the upgrade
+    (`src/lib/data/migration.test.ts`, using `fake-indexeddb`, now a
+    devDependency).
+  - `Repo` extension in `src/lib/data/repo.ts` / `local-repo.ts`:
+    `getProfile`/`saveProfile` are the real Phase 1 surface; `listPositions`,
+    `listExercises`, `listPrograms`, `getProgramPlan`, `activeEnrolment`,
+    `enrol`, `advanceWeek` are implemented against tables that are
+    legitimately empty until Phase 2 content lands.
+  - Onboarding wizard at `/onboarding` (`src/routes/onboarding/+page.svelte`)
+    — four steps, each defaulted so nothing blocks completion, single
+    `saveProfile` call at the end.
+  - `/profile` view/edit page (`src/routes/profile/+page.svelte`) — every
+    field editable, injuries add/remove, save-with-confirmation.
+  - First-run redirect (`src/routes/+layout.svelte`: no profile → `/onboarding`)
+    and a Profile tab in `BottomNav.svelte`.
+  - Verified with a real browser (Playwright against `npm run dev`): fresh
+    load → onboarding → finish → redirected home → Profile tab present →
+    edit → save → reload → persisted. Caught and fixed a real bug in the
+    process: Svelte 5 `$state` proxies aren't structured-cloneable, so
+    IndexedDB `put()` threw `DataCloneError` on save until the array fields
+    were wrapped in `$state.snapshot(...)` at both call sites.
+  - _Not done, out of scope for Phase 1 per the plan: drill/program
+    recommendations, `/train`, export/delete._
+
+- **Phases 2–6** have not started — they need the open questions below
+  answered, and Phase 2 specifically needs your content files.
 
 ## Goal
 
@@ -416,9 +451,11 @@ player what unlocks more.
 
 Each phase is independently shippable and useful on its own.
 
-**1 — Profile foundation.** Types, Dexie v2, repo methods, onboarding, `/profile`.
-No recommendations yet. _Done when: a profile persists across reload and survives
-the v1→v2 migration with existing rep logs intact._
+**1 — Profile foundation. ✅ Done.** Types, Dexie v2, repo methods, onboarding,
+`/profile`. No recommendations yet. _Done when: a profile persists across
+reload and survives the v1→v2 migration with existing rep logs intact._ —
+verified: migration test passes, and a browser-driven run confirmed the
+profile persists across a page reload.
 
 **2 — Content pipeline.** Importer, validation, generated seeds, position
 profiles loaded. _Done when: `npm run import:content` turns your files into

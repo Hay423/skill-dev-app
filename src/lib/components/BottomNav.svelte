@@ -5,7 +5,8 @@
 		{ href: '/', label: 'Today', icon: '◎' },
 		{ href: '/drills', label: 'Drills', icon: '▦' },
 		{ href: '/log', label: 'Log', icon: '＋' },
-		{ href: '/progress', label: 'Progress', icon: '📈' }
+		{ href: '/progress', label: 'Progress', icon: '📈' },
+		{ href: '/profile', label: 'Profile', icon: '☺' }
 	];
 
 	function isActive(href: string): boolean {
