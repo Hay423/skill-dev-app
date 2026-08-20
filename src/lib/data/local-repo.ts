@@ -14,7 +14,17 @@ import {
 } from '$lib/types';
 import { localDate, newId, nowIso } from '$lib/util/time';
 import { db } from './db';
-import type { NewRepLog, ProfileInput, Repo } from './repo';
+import type { DrillInput, NewRepLog, ProfileInput, Repo } from './repo';
+
+/** Lowercase, hyphenated, alphanumeric-only — matches the seed library's slugs. */
+function slugify(text: string): string {
+	const base = text
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '');
+	return base || 'drill';
+}
 
 /** Sync bookkeeping for a freshly created, not-yet-pushed row. */
 function freshMeta(at = nowIso()): SyncMeta {
@@ -26,10 +36,14 @@ function freshMeta(at = nowIso()): SyncMeta {
  * directly, apart from the seeder.
  */
 export class LocalRepo implements Repo {
-	async listDrills(filter?: { category?: Drill['category'] }): Promise<Drill[]> {
-		const drills = filter?.category
+	async listDrills(filter?: {
+		category?: Drill['category'];
+		includeHidden?: boolean;
+	}): Promise<Drill[]> {
+		let drills = filter?.category
 			? await db.drills.where('category').equals(filter.category).toArray()
 			: await db.drills.toArray();
+		if (!filter?.includeHidden) drills = drills.filter((d) => d.active === 1);
 		return drills.sort((a, b) => a.difficulty - b.difficulty || a.name.localeCompare(b.name));
 	}
 
@@ -39,6 +53,76 @@ export class LocalRepo implements Repo {
 
 	getDrillBySlug(slug: string) {
 		return db.drills.where('slug').equals(slug).first();
+	}
+
+	/** Builds the new/updated row's content fields from `DrillInput`, leaving id/slug/active/source to the caller. */
+	private drillFields(input: DrillInput) {
+		return {
+			name: input.name,
+			category: input.category,
+			summary: input.summary,
+			setup: input.setup,
+			coaching_points: input.coaching_points,
+			equipment: input.equipment,
+			min_players: input.min_players,
+			duration_minutes: input.duration_minutes,
+			difficulty: input.difficulty,
+			tracks_reps: input.tracks_reps,
+			target_reps: input.target_reps,
+			position_tags: input.position_tags ?? [],
+			equipment_required: input.equipment_required ?? []
+		};
+	}
+
+	private async uniqueSlug(base: string): Promise<string> {
+		const root = slugify(base);
+		let slug = root;
+		let suffix = 2;
+		while (await db.drills.where('slug').equals(slug).first()) {
+			slug = `${root}-${suffix++}`;
+		}
+		return slug;
+	}
+
+	async createDrill(input: DrillInput): Promise<Drill> {
+		const slug = await this.uniqueSlug(input.slug || input.name);
+		const drill: Drill = {
+			id: newId(),
+			slug,
+			active: 1,
+			source: 'custom',
+			...this.drillFields(input)
+		};
+		await db.drills.add(drill);
+		return drill;
+	}
+
+	async updateDrill(id: Uuid, input: DrillInput): Promise<Drill> {
+		const existing = await db.drills.get(id);
+		if (!existing) throw new Error('Drill not found');
+		const updated: Drill = { ...existing, ...this.drillFields(input) };
+		await db.drills.put(updated);
+		return updated;
+	}
+
+	async setDrillActive(id: Uuid, active: boolean): Promise<void> {
+		await db.drills.update(id, { active: active ? 1 : 0 });
+	}
+
+	async importDrills(inputs: DrillInput[]): Promise<{ created: number; updated: number }> {
+		let created = 0;
+		let updated = 0;
+		for (const input of inputs) {
+			const existing = input.slug ? await this.getDrillBySlug(input.slug) : undefined;
+			if (existing) {
+				await this.updateDrill(existing.id, input);
+				updated++;
+			} else {
+				await this.createDrill(input);
+				created++;
+			}
+		}
+		return { created, updated };
 	}
 
 	async startSession(input: { drill_ids: Uuid[]; notes?: string | null }): Promise<Session> {

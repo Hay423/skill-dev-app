@@ -127,6 +127,14 @@
 		</a>
 	</div>
 {:else}
+	<a
+		href="/profile/drills"
+		class="tap-target preset-outlined-surface-200-800 mb-5 flex items-center justify-between rounded-xl px-4 py-3"
+	>
+		<span class="text-sm font-medium">Manage drill library</span>
+		<span class="text-surface-500" aria-hidden="true">→</span>
+	</a>
+
 	<div class="space-y-5">
 		<label class="block">
 			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Display name</span>

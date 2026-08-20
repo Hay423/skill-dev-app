@@ -7,8 +7,8 @@
 
 	let { children } = $props();
 
-	// Keeps the bundled drill library in sync with IndexedDB on every boot, then
-	// sends a player with no profile yet to onboarding before anything else loads.
+	// Adds any bundled seed drills not yet in IndexedDB, then sends a player
+	// with no profile yet to onboarding before anything else loads.
 	const ready = seedDrills().then(async () => {
 		if (page.url.pathname !== '/onboarding') {
 			const profile = await repo.getProfile();

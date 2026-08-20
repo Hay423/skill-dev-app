@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { RepLog, Session } from '$lib/types';
+import type { Drill, RepLog, Session } from '$lib/types';
 
 /**
  * Simulates a real v1 user upgrading to v2: a database is opened with only
@@ -79,5 +79,73 @@ describe('v1 -> v2 Dexie migration', () => {
 		await expect(v2.programs.toArray()).resolves.toEqual([]);
 
 		v2.close();
+	});
+});
+
+/**
+ * Simulates a v2 user upgrading to v3: a drill seeded before `active`/`source`
+ * existed must come up visible (`active: 1`) and attributed to the seed
+ * library, not silently hidden or orphaned.
+ */
+describe('v2 -> v3 Dexie migration', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	it('backfills active and source on existing drills', async () => {
+		class V2Db extends Dexie {
+			constructor() {
+				super('skill-dev');
+				this.version(1).stores({
+					drills: 'id, &slug, category, difficulty',
+					sessions: 'id, local_date, started_at, completed_at, _dirty',
+					rep_logs: 'id, local_date, category, session_id, drill_id, recorded_at, _dirty'
+				});
+				this.version(2).stores({
+					drills: 'id, &slug, category, difficulty',
+					sessions: 'id, local_date, started_at, completed_at, _dirty',
+					rep_logs: 'id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+					player_profile: 'id, _dirty',
+					positions: '&position, group',
+					exercises: 'id, &slug, movement_pattern',
+					programs: 'id, &slug, discipline, phase',
+					program_weeks: '[program_id+week_number], program_id',
+					program_sessions: 'id, program_id, week_number',
+					program_items: 'id, session_id',
+					program_enrolments: 'id, program_id, completed_at, _dirty'
+				});
+			}
+		}
+
+		const drill: Omit<Drill, 'active' | 'source'> = {
+			id: 'drill-1',
+			slug: 'wall-kick-repeaters',
+			name: 'Wall kick repeaters',
+			category: 'kicking',
+			summary: 'Summary',
+			setup: 'Setup',
+			coaching_points: [],
+			equipment: [],
+			min_players: 1,
+			duration_minutes: 10,
+			difficulty: 1,
+			tracks_reps: true,
+			target_reps: 20
+		};
+
+		const v2 = new V2Db();
+		await v2.table('drills').add(drill);
+		v2.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v3 = new SkillDevDb();
+
+		await expect(v3.drills.get('drill-1')).resolves.toMatchObject({
+			id: 'drill-1',
+			active: 1,
+			source: 'seed'
+		});
+
+		v3.close();
 	});
 });
