@@ -1,5 +1,6 @@
 import type {
 	AgeGroup,
+	Difficulty,
 	Drill,
 	EquipmentAccess,
 	Exercise,
@@ -29,10 +30,20 @@ import type {
  * Nothing above this line may import Dexie directly.
  */
 export interface Repo {
-	// --- drills (reference data, read-only) ---
-	listDrills(filter?: { category?: SkillCategory }): Promise<Drill[]>;
+	// --- drills (reference data, editable via the admin library) ---
+	/** `includeHidden` is for the admin library; every other caller wants the default (active only). */
+	listDrills(filter?: {
+		category?: SkillCategory;
+		includeHidden?: boolean;
+	}): Promise<Drill[]>;
 	getDrill(id: Uuid): Promise<Drill | undefined>;
 	getDrillBySlug(slug: string): Promise<Drill | undefined>;
+	createDrill(input: DrillInput): Promise<Drill>;
+	updateDrill(id: Uuid, input: DrillInput): Promise<Drill>;
+	/** Soft-hide/show. Never deletes the row — rep logs may reference its id. */
+	setDrillActive(id: Uuid, active: boolean): Promise<void>;
+	/** Bulk add/update by slug, for the admin library's file-upload path. */
+	importDrills(inputs: DrillInput[]): Promise<{ created: number; updated: number }>;
 
 	// --- sessions ---
 	startSession(input: { drill_ids: Uuid[]; notes?: string | null }): Promise<Session>;
@@ -86,6 +97,31 @@ export interface NewRepLog {
 	notes?: string | null;
 	/** Defaults to now. Injectable so tests are deterministic. */
 	recorded_at?: string;
+}
+
+/**
+ * Input to `createDrill`/`updateDrill`/`importDrills`.
+ *
+ * `slug` is optional on create (derived from `name` if omitted) and ignored on
+ * update — a drill's slug, like its id, never changes once assigned. On
+ * `importDrills`, a row whose `slug` matches an existing drill updates it in
+ * place; otherwise a new drill is created.
+ */
+export interface DrillInput {
+	slug?: string;
+	name: string;
+	category: SkillCategory;
+	summary: string;
+	setup: string;
+	coaching_points: string[];
+	equipment: string[];
+	min_players: number;
+	duration_minutes: number;
+	difficulty: Difficulty;
+	tracks_reps: boolean;
+	target_reps: number | null;
+	position_tags?: Position[];
+	equipment_required?: EquipmentAccess[];
 }
 
 /** Input to `saveProfile`. A full replace of editable fields, not a patch. */

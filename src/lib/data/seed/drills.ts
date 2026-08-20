@@ -4,11 +4,12 @@ import type { Drill } from '$lib/types';
  * The starting drill library.
  *
  * Ids are hard-coded and permanent: rep logs reference them, so a drill's id
- * must never change between releases. `slug` is the human-readable natural key
- * used to upsert on seed, so a drill's copy can be edited freely — only add
- * new ids, never recycle old ones.
+ * must never change between releases. `slug` is the human-readable natural key.
+ * `active`/`source` are runtime state owned by the admin library (see
+ * `seedDrills` in `../index.ts`), not content, so they are deliberately omitted
+ * here rather than hard-coded on every entry.
  */
-export const SEED_DRILLS: Drill[] = [
+export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 	{
 		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a01',
 		slug: 'wall-kick-repeaters',

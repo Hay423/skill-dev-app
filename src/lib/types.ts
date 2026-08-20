@@ -93,6 +93,13 @@ export interface Drill {
 	position_tags?: Position[];
 	/** Structured equipment for eligibility filtering. `equipment` above stays for display. */
 	equipment_required?: EquipmentAccess[];
+	/** `seed` ships with the app; `custom` was added locally through the admin library. */
+	source: 'seed' | 'custom';
+	/**
+	 * 0 soft-hides the drill from the library, drill picker and recommendations
+	 * without deleting the row, since rep logs may reference its id permanently.
+	 */
+	active: 0 | 1;
 }
 
 /** A training session — a run through one or more drills. */
