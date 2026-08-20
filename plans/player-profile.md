@@ -1,7 +1,8 @@
 # Plan — Player profile & position-driven training
 
-Status: **Phase 1 (profile foundation) done.** Supersedes nothing; slots in
-ahead of "Guided sessions" in [ROADMAP.md](ROADMAP.md).
+Status: **Phase 1 (profile foundation) done. Drill library admin done, ahead
+of the phasing below.** Supersedes nothing; slots in ahead of "Guided
+sessions" in [ROADMAP.md](ROADMAP.md).
 
 ## Progress
 
@@ -35,8 +36,51 @@ ahead of "Guided sessions" in [ROADMAP.md](ROADMAP.md).
   - _Not done, out of scope for Phase 1 per the plan: drill/program
     recommendations, `/train`, export/delete._
 
+- **Drill library admin. Done, ahead of schedule.** Not part of the original
+  phasing below — pulled forward because drills were the one piece of content
+  you wanted to edit yourself before the Phase 2 content pipeline exists.
+  - `Drill` gained `active` (`0 | 1`, soft-hide — a hidden drill drops out of
+    the library, the log picker and recommendations, but the row stays so any
+    rep log referencing its id never orphans) and `source` (`'seed' |
+    'custom'`) in `src/lib/types.ts`.
+  - Dexie **v3** (`src/lib/data/db.ts`) adds the `active` index and backfills
+    existing rows to `active: 1, source: 'seed'` on upgrade, with a migration
+    test alongside the existing v1→v2 one.
+  - `seedDrills()` (`src/lib/data/index.ts`) changed from "overwrite every
+    boot" to **insert-only** — it only adds seed drills whose id isn't already
+    present. This is a deliberate behaviour change from Phase 1: it's what
+    lets admin edits and hidden state survive across boots instead of being
+    clobbered by the bundled seed data on the next launch.
+  - `Repo`/`LocalRepo` gained `createDrill`, `updateDrill`, `setDrillActive`
+    (soft-hide/show, never a hard delete) and `importDrills` (bulk add/update
+    by slug) in `src/lib/data/repo.ts` / `local-repo.ts`.
+  - Admin UI at `/profile/drills` (list with Active/Hidden sections, hide/
+    unhide, CSV/JSON bulk upload) plus `/profile/drills/new` and
+    `/profile/drills/[id]/edit`, sharing `src/lib/components/DrillForm.svelte`.
+    Linked from `/profile` as "Manage drill library".
+  - Bulk upload parsing lives in `src/lib/domain/drill-import.ts` — pure,
+    unit-tested, validates each row independently so one bad row doesn't
+    block the rest of the file.
+  - Verified with a real browser (Playwright against `npm run dev`): onboard →
+    hide a seed drill → confirm it disappears from `/drills` → unhide → add a
+    custom drill → edit it → CSV upload with one good and one bad row →
+    confirm the bad row is reported and the good one imports. Caught and fixed
+    the same class of bug as Phase 1: the bulk-import path handed a live
+    Svelte 5 `$state` array straight to Dexie, which threw `DataCloneError`
+    until wrapped in `$state.snapshot(...)`.
+  - Shipped on branch `drill-library-admin`, not yet merged to `main`.
+  - _Out of scope here: this only covers `Drill`. Positions, exercises and
+    programs still have no editing surface — that's what Phase 2 below is for._
+
 - **Phases 2–6** have not started — they need the open questions below
-  answered, and Phase 2 specifically needs your content files.
+  answered, and Phase 2 specifically needs your content files. Note for
+  whoever picks up Phase 2: the `positions`/`exercises`/`programs`/
+  `program_weeks`/`program_sessions`/`program_items` tables already exist
+  (added empty in v2, carried unchanged into the drill-library admin's v3 —
+  see "Storage & repo" below), so Phase 2 likely needs **no new Dexie
+  version**, just a seeder that populates them. Follow the pattern
+  `seedDrills()` now uses: insert-only by id, so re-running the importer never
+  clobbers anything a later phase (enrolment, adaptation) has written on top.
 
 ## Goal
 
