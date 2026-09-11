@@ -5,29 +5,22 @@
 	import {
 		AGE_GROUPS,
 		AGE_GROUP_LABELS,
-		BODY_REGIONS,
-		BODY_REGION_LABELS,
 		EQUIPMENT_ACCESS,
 		EQUIPMENT_ACCESS_LABELS,
 		EXPERIENCE_LEVELS,
 		EXPERIENCE_LEVEL_LABELS,
-		INJURY_STATUSES,
-		INJURY_STATUS_LABELS,
 		POSITIONS,
 		POSITION_LABELS,
 		WEEKDAYS,
 		WEEKDAY_LABELS,
 		type AgeGroup,
-		type BodyRegion,
 		type EquipmentAccess,
 		type ExperienceLevel,
-		type InjuryFlag,
-		type InjuryStatus,
 		type Position,
 		type Weekday
 	} from '$lib/types';
 
-	const STEP_TITLES = ['Position', 'Age & experience', 'Availability & equipment', 'Injuries'];
+	const STEP_TITLES = ['Position', 'Age & experience', 'Availability & equipment'];
 	const totalSteps = STEP_TITLES.length;
 
 	let step = $state(1);
@@ -39,12 +32,6 @@
 	let sessions_per_week = $state(3);
 	let available_days = $state<Weekday[]>([]);
 	let equipment_access = $state<EquipmentAccess[]>([]);
-	let injuries = $state<InjuryFlag[]>([]);
-
-	let draftRegion = $state<BodyRegion>('ankle');
-	let draftStatus = $state<InjuryStatus>('current');
-	let draftNote = $state('');
-	let draftSince = $state('');
 
 	let saving = $state(false);
 	let error = $state<string | null>(null);
@@ -63,24 +50,6 @@
 
 	function adjustSessions(delta: number) {
 		sessions_per_week = Math.min(14, Math.max(0, sessions_per_week + delta));
-	}
-
-	function addInjury() {
-		injuries = [
-			...injuries,
-			{
-				region: draftRegion,
-				status: draftStatus,
-				note: draftNote.trim() || null,
-				since: draftSince || null
-			}
-		];
-		draftNote = '';
-		draftSince = '';
-	}
-
-	function removeInjury(index: number) {
-		injuries = injuries.filter((_, i) => i !== index);
 	}
 
 	function next() {
@@ -102,8 +71,7 @@
 				experience,
 				sessions_per_week,
 				available_days: $state.snapshot(available_days),
-				equipment_access: $state.snapshot(equipment_access),
-				injuries: $state.snapshot(injuries)
+				equipment_access: $state.snapshot(equipment_access)
 			};
 			await repo.saveProfile(input);
 			await goto('/');
@@ -119,7 +87,9 @@
 	<h1 class="text-2xl font-bold">{STEP_TITLES[step - 1]}</h1>
 	<div class="mt-3 flex gap-1">
 		{#each STEP_TITLES as _, i (i)}
-			<div class="h-1 flex-1 rounded-full {i < step ? 'bg-primary-500' : 'bg-surface-100-900'}"></div>
+			<div
+				class="h-1 flex-1 rounded-full {i < step ? 'bg-primary-500' : 'bg-surface-100-900'}"
+			></div>
 		{/each}
 	</div>
 </header>
@@ -248,100 +218,6 @@
 					</button>
 				{/each}
 			</div>
-		</div>
-	</div>
-{:else if step === 4}
-	<div class="space-y-5">
-		<p class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 text-sm text-surface-600-400">
-			This only affects which drills and future training content get excluded — it's not medical
-			advice and nothing is treated here. Completely optional.
-		</p>
-
-		{#if injuries.length > 0}
-			<ul class="space-y-2">
-				{#each injuries as injury, i (i)}
-					<li class="flex items-start gap-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
-						<div class="min-w-0 flex-1">
-							<p class="font-medium">
-								{BODY_REGION_LABELS[injury.region]} · {INJURY_STATUS_LABELS[injury.status]}
-							</p>
-							{#if injury.note}
-								<p class="text-xs text-surface-600-400">{injury.note}</p>
-							{/if}
-							{#if injury.since}
-								<p class="text-xs text-surface-500">Since {injury.since}</p>
-							{/if}
-						</div>
-						<button
-							type="button"
-							onclick={() => removeInjury(i)}
-							class="tap-target preset-outlined-error-500 rounded-xl px-3 text-xs"
-						>
-							Remove
-						</button>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-
-		<div class="space-y-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
-			<p class="text-xs tracking-wide text-surface-600-400 uppercase">Add an injury</p>
-
-			<label class="block">
-				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Region</span>
-				<select
-					bind:value={draftRegion}
-					class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2"
-				>
-					{#each BODY_REGIONS as r (r)}
-						<option value={r}>{BODY_REGION_LABELS[r]}</option>
-					{/each}
-				</select>
-			</label>
-
-			<div>
-				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Status</span>
-				<div class="mt-1 flex gap-2">
-					{#each INJURY_STATUSES as s (s)}
-						<button
-							type="button"
-							onclick={() => (draftStatus = s)}
-							class="tap-target flex-1 rounded-xl border px-2 text-xs {draftStatus === s
-								? 'preset-filled-primary-500'
-								: 'preset-outlined-surface-200-800'}"
-						>
-							{INJURY_STATUS_LABELS[s]}
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<label class="block">
-				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Note (optional)</span>
-				<input
-					type="text"
-					bind:value={draftNote}
-					placeholder="e.g. grade 1 strain"
-					class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2 text-sm"
-				/>
-			</label>
-
-			<label class="block">
-				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Since (optional)</span>
-				<input
-					type="date"
-					bind:value={draftSince}
-					class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2 text-sm"
-				/>
-			</label>
-
-			<button
-				type="button"
-				onclick={addInjury}
-				class="tap-target preset-outlined-surface-200-800 w-full rounded-xl py-2 text-sm font-semibold"
-			>
-				Add injury
-			</button>
 		</div>
 	</div>
 {/if}

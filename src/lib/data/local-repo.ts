@@ -245,7 +245,6 @@ export class LocalRepo implements Repo {
 			sessions_per_week: input.sessions_per_week ?? 0,
 			available_days: input.available_days ?? [],
 			equipment_access: input.equipment_access ?? [],
-			injuries: input.injuries ?? [],
 			schema_version: PLAYER_PROFILE_SCHEMA_VERSION,
 			created_at: existing?.created_at ?? at,
 			updated_at: at,

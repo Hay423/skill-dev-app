@@ -278,6 +278,12 @@ export const EQUIPMENT_ACCESS_LABELS: Record<EquipmentAccess, string> = {
 	wall: 'Wall'
 };
 
+/**
+ * Body regions, used to describe reference content — which regions an exercise
+ * is unsuitable for. This says nothing about any particular player, so it
+ * carries no privacy weight and stayed when injury collection was forked out
+ * to `src/lib/injuries/` (dormant — see that directory's README).
+ */
 export const BODY_REGIONS = [
 	'ankle',
 	'knee',
@@ -303,27 +309,6 @@ export const BODY_REGION_LABELS: Record<BodyRegion, string> = {
 	other: 'Other'
 };
 
-export const INJURY_STATUSES = ['current', 'recent', 'historical'] as const;
-export type InjuryStatus = (typeof INJURY_STATUSES)[number];
-
-export const INJURY_STATUS_LABELS: Record<InjuryStatus, string> = {
-	current: 'Current',
-	recent: 'Recent',
-	historical: 'Historical (fully recovered)'
-};
-
-/**
- * A body region and a coarse status — never clinical detail. A flagged
- * region excludes contraindicated content; the app never implies it is
- * treating or resolving anything.
- */
-export interface InjuryFlag {
-	region: BodyRegion;
-	status: InjuryStatus;
-	note: string | null;
-	since: IsoDate | null;
-}
-
 /**
  * The player's own profile. A singleton row keyed `'me'` until auth lands —
  * see plans/player-profile.md open question on multi-player support.
@@ -340,12 +325,11 @@ export interface PlayerProfile extends Owned, SyncMeta {
 	sessions_per_week: number;
 	available_days: Weekday[];
 	equipment_access: EquipmentAccess[];
-	injuries: InjuryFlag[];
 	/** Bumped when this shape changes, so a future migration can adapt old rows. */
 	schema_version: number;
 }
 
-export const PLAYER_PROFILE_SCHEMA_VERSION = 1;
+export const PLAYER_PROFILE_SCHEMA_VERSION = 2;
 
 /** The constant singleton id `PlayerProfile` rows are keyed by until auth lands. */
 export const SINGLETON_PROFILE_ID = 'me';

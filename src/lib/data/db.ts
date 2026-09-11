@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
+import { PLAYER_PROFILE_SCHEMA_VERSION } from '$lib/types';
 import type {
 	Drill,
 	Exercise,
@@ -91,6 +92,39 @@ export class SkillDevDb extends Dexie {
 					.modify((d) => {
 						d.active = 1;
 						d.source = 'seed';
+					});
+			});
+
+		// v4 purges injury flags. Collecting a body region and an injury status
+		// is collecting health data, which is what drives the app's privacy
+		// obligations, so the feature was forked out to `src/lib/injuries/`
+		// (dormant) and the stored data is deleted here rather than left to
+		// linger on devices that never save their profile again.
+		//
+		// This upgrade must stay even if injuries return: a v4 user has already
+		// had the key removed, so re-enabling is a fresh write, not a restore.
+		// No index changes — `injuries` was only ever a property on the row.
+		this.version(4)
+			.stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, program_id, completed_at, _dirty'
+			})
+			.upgrade(async (tx) => {
+				await tx
+					.table('player_profile')
+					.toCollection()
+					.modify((profile) => {
+						delete profile.injuries;
+						profile.schema_version = PLAYER_PROFILE_SCHEMA_VERSION;
 					});
 			});
 	}

@@ -3,14 +3,10 @@
 	import {
 		AGE_GROUPS,
 		AGE_GROUP_LABELS,
-		BODY_REGIONS,
-		BODY_REGION_LABELS,
 		EQUIPMENT_ACCESS,
 		EQUIPMENT_ACCESS_LABELS,
 		EXPERIENCE_LEVELS,
 		EXPERIENCE_LEVEL_LABELS,
-		INJURY_STATUSES,
-		INJURY_STATUS_LABELS,
 		POSITIONS,
 		POSITION_LABELS,
 		WEEKDAYS,
@@ -18,7 +14,6 @@
 		type AgeGroup,
 		type EquipmentAccess,
 		type ExperienceLevel,
-		type InjuryFlag,
 		type PlayerProfile,
 		type Position,
 		type Weekday
@@ -36,7 +31,6 @@
 	let sessionsPerWeek = $state(1);
 	let availableDays = $state<Weekday[]>([]);
 	let equipmentAccess = $state<EquipmentAccess[]>([]);
-	let injuries = $state<InjuryFlag[]>([]);
 
 	let saving = $state(false);
 	let saved = $state(false);
@@ -57,7 +51,6 @@
 				sessionsPerWeek = p.sessions_per_week;
 				availableDays = [...p.available_days];
 				equipmentAccess = [...p.equipment_access];
-				injuries = p.injuries.map((i) => ({ ...i }));
 			})
 			.finally(() => (loading = false));
 	});
@@ -74,14 +67,6 @@
 			: [...equipmentAccess, item];
 	}
 
-	function addInjury() {
-		injuries = [...injuries, { region: 'ankle', status: 'current', note: null, since: null }];
-	}
-
-	function removeInjury(index: number) {
-		injuries = injuries.filter((_, i) => i !== index);
-	}
-
 	async function save() {
 		saving = true;
 		saved = false;
@@ -96,8 +81,7 @@
 				experience,
 				sessions_per_week: sessionsPerWeek,
 				available_days: $state.snapshot(availableDays),
-				equipment_access: $state.snapshot(equipmentAccess),
-				injuries: $state.snapshot(injuries)
+				equipment_access: $state.snapshot(equipmentAccess)
 			});
 			saved = true;
 			setTimeout(() => (saved = false), 2000);
@@ -260,84 +244,6 @@
 					</button>
 				{/each}
 			</div>
-		</div>
-
-		<div>
-			<div class="flex items-center justify-between">
-				<span class="text-xs tracking-wide text-surface-600-400 uppercase">Injuries</span>
-				<button
-					type="button"
-					onclick={addInjury}
-					class="tap-target preset-outlined-surface-200-800 rounded-xl px-3 text-sm"
-				>
-					+ Add
-				</button>
-			</div>
-			<p class="mt-1 text-xs text-surface-500">
-				This only filters out unsuitable content — it's not medical advice, diagnosis or
-				treatment.
-			</p>
-
-			{#if injuries.length === 0}
-				<p class="mt-2 text-sm text-surface-500">No injuries flagged.</p>
-			{:else}
-				<ul class="mt-2 space-y-3">
-					{#each injuries as injury, i (i)}
-						<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
-							<div class="grid grid-cols-2 gap-2">
-								<label class="block">
-									<span class="text-xs tracking-wide text-surface-600-400 uppercase">Region</span>
-									<select
-										bind:value={injury.region}
-										class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-2 py-2 text-sm"
-									>
-										{#each BODY_REGIONS as region (region)}
-											<option value={region}>{BODY_REGION_LABELS[region]}</option>
-										{/each}
-									</select>
-								</label>
-								<label class="block">
-									<span class="text-xs tracking-wide text-surface-600-400 uppercase">Status</span>
-									<select
-										bind:value={injury.status}
-										class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-2 py-2 text-sm"
-									>
-										{#each INJURY_STATUSES as status (status)}
-											<option value={status}>{INJURY_STATUS_LABELS[status]}</option>
-										{/each}
-									</select>
-								</label>
-							</div>
-							<label class="mt-2 block">
-								<span class="text-xs tracking-wide text-surface-600-400 uppercase">Note</span>
-								<input
-									type="text"
-									value={injury.note ?? ''}
-									oninput={(e) => (injury.note = e.currentTarget.value || null)}
-									placeholder="Optional"
-									class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2 text-sm"
-								/>
-							</label>
-							<label class="mt-2 block">
-								<span class="text-xs tracking-wide text-surface-600-400 uppercase">Since</span>
-								<input
-									type="date"
-									value={injury.since ?? ''}
-									oninput={(e) => (injury.since = e.currentTarget.value || null)}
-									class="tap-target mt-1 w-full rounded-xl border border-surface-300-700 bg-surface-50-950 px-3 py-2 text-sm"
-								/>
-							</label>
-							<button
-								type="button"
-								onclick={() => removeInjury(i)}
-								class="tap-target preset-outlined-error-500 mt-2 w-full rounded-xl py-2 text-sm"
-							>
-								Remove
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
 		</div>
 	</div>
 

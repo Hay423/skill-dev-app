@@ -1,8 +1,11 @@
 # Plan — Player profile & position-driven training
 
-Status: **Phase 1 (profile foundation) done. Drill library admin done, ahead
-of the phasing below.** Supersedes nothing; slots in ahead of "Guided
-sessions" in [ROADMAP.md](ROADMAP.md).
+Status: **Phase 1 (profile foundation) and Phase 3 (drill recommendations)
+done. Drill library admin done, ahead of the phasing below. Phase 2 (the CSV
+content pipeline) is still open and now the main gap. Injury flags have been
+forked out of the app entirely — see "Injuries: forked out" below.**
+Supersedes nothing; slots in ahead of "Guided sessions" in
+[ROADMAP.md](ROADMAP.md).
 
 ## Progress
 
@@ -42,7 +45,7 @@ sessions" in [ROADMAP.md](ROADMAP.md).
   - `Drill` gained `active` (`0 | 1`, soft-hide — a hidden drill drops out of
     the library, the log picker and recommendations, but the row stays so any
     rep log referencing its id never orphans) and `source` (`'seed' |
-    'custom'`) in `src/lib/types.ts`.
+'custom'`) in `src/lib/types.ts`.
   - Dexie **v3** (`src/lib/data/db.ts`) adds the `active` index and backfills
     existing rows to `active: 1, source: 'seed'` on upgrade, with a migration
     test alongside the existing v1→v2 one.
@@ -72,15 +75,66 @@ sessions" in [ROADMAP.md](ROADMAP.md).
   - _Out of scope here: this only covers `Drill`. Positions, exercises and
     programs still have no editing surface — that's what Phase 2 below is for._
 
-- **Phases 2–6** have not started — they need the open questions below
+- **Phase 3 — Drill recommendations. Done.** Taken before Phase 2 because the
+  CSV pipeline is blocked on content files that do not exist yet, and the
+  scoring layer only ever needed the position weights.
+  - **Position weights ship as a bundled seed, not as importer output.**
+    `src/lib/data/seed/positions.ts` holds all nine `PositionProfile` records
+    with `skill_weights` and `physical_weights`, seeded insert-only by
+    `seedPositions()` in `src/lib/data/index.ts`. **No new Dexie version** —
+    the `positions` table has existed and been empty since v2, exactly as the
+    note below anticipated. This is deliberately the shape the Phase 2
+    importer will emit, so that phase replaces this one file and changes
+    nothing else.
+  - `src/lib/domain/recommend.ts` — pure, no storage imports:
+    `positionWeights` (primary + secondary × `SECONDARY_POSITION_WEIGHT`,
+    normalised so the top emphasis is 1), `isEligible` as a hard filter ahead
+    of scoring, `recommendDrills`, `describeExclusion` and
+    `priorityCategories`. Scoring is the weighted-scorer list the plan called
+    for — `positionFit` 0.6, `positionTagFit` 0.2, `difficultyFit` 0.2 — so
+    the "weakest skill" scorer drops in later without touching the others.
+  - **`isEligible` is structural, not `Drill`-shaped**, so Phase 4's
+    `Exercise` runs through the same filter: it already implements age gating
+    on `min_age_group` and injury contraindication on
+    `contraindicated_regions`, neither of which `Drill` carries. Phase 4
+    inherits the duty-of-care filter rather than re-implementing it.
+  - **Deviation from the plan's signature**: `recommendDrills` returns
+    `{ recommended, excluded }` rather than a bare `ScoredDrill[]`. The plan
+    also requires exclusions to be shown rather than hidden, and computing
+    eligibility twice to satisfy both was worse than widening the return.
+  - **A skipped profile question means "unknown", not "has nothing".** An
+    empty `equipment_access` excludes nothing, so a player who skipped that
+    step still gets a full list. Tested.
+  - `RecommendedDrills.svelte` renders the block on Today: the ranked drills
+    with a "why this one" line each, the position and its focus skills, and a
+    collapsed "1 drill not shown — needs full gym" disclosure.
+  - 36 unit tests in `src/lib/domain/recommend.test.ts`, including one per
+    position asserting the top-ranked drill matches that position's dominant
+    skill, plus a seeder test proving `seedPositions()` is insert-only and
+    keyed by position.
+  - Verified with a real browser (Playwright against `npm run dev`, 390px):
+    three positions onboarded from scratch gave three different orders — small
+    forward led with set shots, key defender with chest marking, ruck with
+    marking — then adding a ruck-tagged drill through the admin library put it
+    straight to the top with "Specific to ruck", and a gym-only drill appeared
+    in the exclusions row as "needs full gym". No console errors.
+  - _Known content gap, not a bug: the seed library has no `ruckwork` drill,
+    so a ruck's top-weighted skill has nothing to offer and the list falls
+    through to marking. Scoring is behaving correctly; the library is thin._
+  - _Out of scope here, per the plan: drills only. No program or conditioning
+    recommendation, and `physical_weights` is populated but not yet read by
+    anything — Phase 4 is its first consumer._
+
+- **Phases 2, 4–6** have not started — they need the open questions below
   answered, and Phase 2 specifically needs your content files. Note for
-  whoever picks up Phase 2: the `positions`/`exercises`/`programs`/
-  `program_weeks`/`program_sessions`/`program_items` tables already exist
-  (added empty in v2, carried unchanged into the drill-library admin's v3 —
-  see "Storage & repo" below), so Phase 2 likely needs **no new Dexie
-  version**, just a seeder that populates them. Follow the pattern
-  `seedDrills()` now uses: insert-only by id, so re-running the importer never
-  clobbers anything a later phase (enrolment, adaptation) has written on top.
+  whoever picks up Phase 2: the `exercises`/`programs`/`program_weeks`/
+  `program_sessions`/`program_items` tables already exist (added empty in v2,
+  carried unchanged into the drill-library admin's v3 — see "Storage & repo"
+  below), so Phase 2 likely needs **no new Dexie version**, just a seeder that
+  populates them, as Phase 3 has now done for `positions`. Follow the pattern
+  `seedDrills()` and `seedPositions()` use: insert-only by key, so re-running
+  the importer never clobbers anything a later phase (enrolment, adaptation)
+  has written on top.
 
 ## Goal
 
@@ -104,7 +158,45 @@ without changing it.
 | S&C depth      | Full periodised programs (phases, progression, deloads)             |
 | Content source | Files you supply (CSV/JSON), ingested by a validated importer       |
 
+## Injuries: forked out
+
+**The app no longer collects, stores or reads injury data.** Storing a body
+region and an injury status — even coarse, even device-local — is storing health
+data, and health data is what drives most of the privacy policy work this app
+would otherwise have to complete before shipping. Removing collection removes
+the obligation. This was a decision about compliance cost, not about whether the
+feature is worth having.
+
+What happened:
+
+- The types (`InjuryFlag`, `InjuryStatus`), the contraindication filter and its
+  tests moved to `src/lib/injuries/` — **dormant, imported by nothing**, kept
+  whole so re-enabling is a wiring job rather than a rewrite. That directory's
+  README is the re-enabling guide.
+- `PlayerProfile.injuries` and `ProfileInput.injuries` are gone;
+  `PLAYER_PROFILE_SCHEMA_VERSION` is now `2`.
+- **Dexie v4** strips the `injuries` key from stored profile rows on upgrade.
+  Existing data is deleted, not merely left unread — otherwise the exposure
+  would persist on any device whose owner never saved their profile again. That
+  migration stays even if injuries come back.
+- Onboarding dropped from four steps to three; the `/profile` injury editor is
+  gone.
+- `isEligible` no longer has an injury branch and `ExclusionReason` no longer
+  has an `injury` variant.
+
+What deliberately stayed: `BodyRegion` and `Exercise.contraindicated_regions`.
+Those describe **reference content** — which regions an exercise is unsuitable
+for — and say nothing about any particular player, so they carry no privacy
+weight. Phase 4 content can still author them; eligibility simply does not
+consult them while the fork is dormant.
+
+**Before re-enabling, write the privacy policy.** That is the cost this fork
+defers, and it comes due the moment the first flag is stored again.
+
 ## Duty of care — read this before building phase 4
+
+The injury half of this section is **currently dormant** (see above), but the
+reasoning is unchanged and must be re-read before switching it back on.
 
 We are prescribing loaded resistance training to someone who may be a
 14-year-old, and asking about injuries. That earns some deliberate constraints.
@@ -461,8 +553,9 @@ but the seam exists for it.
 ## UI
 
 **Onboarding** — first run, four short steps, each skippable with a default:
-position → age group and experience → availability and equipment → injuries
-(explicitly optional, with a plain statement of why it's asked). Anything skipped
+position → age group and experience → availability and equipment. (A fourth
+injuries step was built and has since been removed — see "Injuries: forked out".)
+Anything skipped
 degrades recommendations rather than blocking them. A player who only picks a
 position gets useful output.
 
@@ -503,11 +596,16 @@ profile persists across a page reload.
 
 **2 — Content pipeline.** Importer, validation, generated seeds, position
 profiles loaded. _Done when: `npm run import:content` turns your files into
-committed seed modules and fails loudly on bad input._
+committed seed modules and fails loudly on bad input._ Still open, and now the
+main gap: Phase 3 shipped hand-authored position weights as a bundled seed to
+get around it, but exercises and programs cannot be faked the same way at the
+volume Phase 4 needs.
 
-**3 — Drill recommendations.** Scoring, eligibility, "Recommended for you".
-Smallest change with visible payoff — worth reaching quickly. _Done when: two
-profiles differing only by position get demonstrably different drill orders._
+**3 — Drill recommendations. ✅ Done.** Scoring, eligibility, "Recommended for
+you". Taken ahead of Phase 2. _Done when: two profiles differing only by
+position get demonstrably different drill orders._ — verified in a browser:
+small forward, key defender and ruck each produced a different order from the
+same library.
 
 **4 — Strength programs.** Program browser, detail, enrolment, session view, age
 gating enforced. _Done when: a U14 profile cannot surface a loaded lift by any

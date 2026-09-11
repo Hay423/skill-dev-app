@@ -149,3 +149,75 @@ describe('v2 -> v3 Dexie migration', () => {
 		v3.close();
 	});
 });
+
+/**
+ * Simulates a v3 user upgrading to v4, after injury collection was forked out
+ * of the app. The stored `injuries` key must actually be gone — not merely
+ * unread — since deleting it is the whole point of the version bump. Everything
+ * else on the profile has to survive untouched.
+ */
+describe('v3 -> v4 Dexie migration', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	it('purges stored injury flags and leaves the rest of the profile intact', async () => {
+		class V3Db extends Dexie {
+			constructor() {
+				super('skill-dev');
+				this.version(3).stores({
+					drills: 'id, &slug, category, difficulty, active',
+					sessions: 'id, local_date, started_at, completed_at, _dirty',
+					rep_logs: 'id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+					player_profile: 'id, _dirty',
+					positions: '&position, group',
+					exercises: 'id, &slug, movement_pattern',
+					programs: 'id, &slug, discipline, phase',
+					program_weeks: '[program_id+week_number], program_id',
+					program_sessions: 'id, program_id, week_number',
+					program_items: 'id, session_id',
+					program_enrolments: 'id, program_id, completed_at, _dirty'
+				});
+			}
+		}
+
+		const v3 = new V3Db();
+		await v3.table('player_profile').add({
+			id: 'me',
+			user_id: null,
+			display_name: 'Test player',
+			primary_position: 'ruck',
+			secondary_position: null,
+			age_group: 'senior',
+			date_of_birth: null,
+			experience: 'developing',
+			sessions_per_week: 3,
+			available_days: ['mon'],
+			equipment_access: ['oval'],
+			injuries: [{ region: 'hamstring', status: 'current', note: 'grade 1', since: '2026-07-01' }],
+			schema_version: 1,
+			created_at: '2026-08-01T00:00:00.000Z',
+			updated_at: '2026-08-01T00:00:00.000Z',
+			synced_at: null,
+			_dirty: 1,
+			_deleted: 0
+		});
+		v3.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v4 = new SkillDevDb();
+
+		const profile = (await v4.player_profile.get('me')) as Record<string, unknown> | undefined;
+		expect(profile).toBeDefined();
+		expect('injuries' in profile!).toBe(false);
+		// The rest of the row is untouched, and the schema version records the change.
+		expect(profile).toMatchObject({
+			display_name: 'Test player',
+			primary_position: 'ruck',
+			equipment_access: ['oval'],
+			schema_version: 2
+		});
+
+		v4.close();
+	});
+});

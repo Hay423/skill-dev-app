@@ -5,7 +5,6 @@ import type {
 	EquipmentAccess,
 	Exercise,
 	ExperienceLevel,
-	InjuryFlag,
 	IsoDate,
 	MovementPattern,
 	PlayerProfile,
@@ -32,10 +31,7 @@ import type {
 export interface Repo {
 	// --- drills (reference data, editable via the admin library) ---
 	/** `includeHidden` is for the admin library; every other caller wants the default (active only). */
-	listDrills(filter?: {
-		category?: SkillCategory;
-		includeHidden?: boolean;
-	}): Promise<Drill[]>;
+	listDrills(filter?: { category?: SkillCategory; includeHidden?: boolean }): Promise<Drill[]>;
 	getDrill(id: Uuid): Promise<Drill | undefined>;
 	getDrillBySlug(slug: string): Promise<Drill | undefined>;
 	createDrill(input: DrillInput): Promise<Drill>;
@@ -135,5 +131,4 @@ export interface ProfileInput {
 	sessions_per_week?: number;
 	available_days?: Weekday[];
 	equipment_access?: EquipmentAccess[];
-	injuries?: InjuryFlag[];
 }
