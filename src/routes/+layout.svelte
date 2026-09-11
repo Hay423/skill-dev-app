@@ -3,13 +3,13 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import BottomNav from '$lib/components/BottomNav.svelte';
-	import { repo, seedDrills } from '$lib/data';
+	import { repo, seedReferenceData } from '$lib/data';
 
 	let { children } = $props();
 
-	// Adds any bundled seed drills not yet in IndexedDB, then sends a player
+	// Adds any bundled seed content not yet in IndexedDB, then sends a player
 	// with no profile yet to onboarding before anything else loads.
-	const ready = seedDrills().then(async () => {
+	const ready = seedReferenceData().then(async () => {
 		if (page.url.pathname !== '/onboarding') {
 			const profile = await repo.getProfile();
 			if (!profile) await goto('/onboarding');

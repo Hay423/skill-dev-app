@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RecommendedDrills from '$lib/components/RecommendedDrills.svelte';
 	import StatCard from '$lib/components/StatCard.svelte';
 	import { repo } from '$lib/data';
 	import { currentStreak, formatAccuracy, totals, totalsByCategory } from '$lib/domain/stats';
@@ -56,6 +57,8 @@
 		</a>
 	</div>
 
+	<RecommendedDrills />
+
 	<section class="mt-6">
 		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
 			Today by skill
@@ -69,7 +72,9 @@
 		{:else}
 			<ul class="space-y-2">
 				{#each byCategory as row (row.category)}
-					<li class="flex items-center gap-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
+					<li
+						class="flex items-center gap-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3"
+					>
 						<div class="min-w-0 flex-1">
 							<p class="font-medium">{SKILL_CATEGORY_LABELS[row.category]}</p>
 							<p class="text-xs text-surface-600-400">
