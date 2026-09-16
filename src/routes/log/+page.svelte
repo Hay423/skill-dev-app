@@ -2,6 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { repo } from '$lib/data';
+	import AffirmationCard from '$lib/components/AffirmationCard.svelte';
+	import { loadAffirmation } from '$lib/affirm';
+	import type { Affirmation } from '$lib/domain/affirmations';
 	import { formatAccuracy } from '$lib/domain/stats';
 	import {
 		SKILL_CATEGORIES,
@@ -19,6 +22,7 @@
 	let successes = $state(0);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
+	let shown = $state<Affirmation | null>(null);
 
 	$effect(() => {
 		repo.listDrills().then((all) => {
@@ -80,9 +84,20 @@
 				drill_id: drillId || null,
 				foot: foot || null
 			});
-			await goto('/');
+			// Stays on the page rather than redirecting home — the affirmation is
+			// shown inline where the work just happened, and a player mid-session
+			// often has another set to log straight away.
+			shown = await loadAffirmation({
+				kind: 'reps',
+				category,
+				attempts,
+				successes,
+				foot: foot || null
+			});
+			reset();
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Could not save';
+		} finally {
 			saving = false;
 		}
 	}
@@ -189,11 +204,33 @@
 	<p class="mt-3 text-sm text-error-500">{error}</p>
 {/if}
 
-<button
-	type="button"
-	onclick={save}
-	disabled={attempts === 0 || saving}
-	class="tap-target preset-filled-primary-500 mt-4 w-full rounded-xl py-3 font-semibold disabled:opacity-40"
->
-	{saving ? 'Saving…' : 'Save set'}
-</button>
+{#if shown}
+	<div class="mt-4">
+		<AffirmationCard affirmation={shown} />
+	</div>
+	<div class="mt-3 flex gap-3">
+		<button
+			type="button"
+			onclick={() => (shown = null)}
+			class="tap-target preset-outlined-surface-200-800 flex-1 rounded-xl py-3 font-semibold"
+		>
+			Log another set
+		</button>
+		<button
+			type="button"
+			onclick={() => goto('/')}
+			class="tap-target preset-filled-primary-500 flex-1 rounded-xl py-3 font-semibold"
+		>
+			Done
+		</button>
+	</div>
+{:else}
+	<button
+		type="button"
+		onclick={save}
+		disabled={attempts === 0 || saving}
+		class="tap-target preset-filled-primary-500 mt-4 w-full rounded-xl py-3 font-semibold disabled:opacity-40"
+	>
+		{saving ? 'Saving…' : 'Save set'}
+	</button>
+{/if}

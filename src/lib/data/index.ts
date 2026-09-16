@@ -2,7 +2,9 @@ import { db } from './db';
 import { LocalRepo } from './local-repo';
 import type { Repo } from './repo';
 import { SEED_DRILLS } from './seed/drills';
+import { SEED_EXERCISES } from './seed/exercises';
 import { SEED_POSITIONS } from './seed/positions';
+import { SEED_PROGRAM_PLANS } from './seed/programs';
 
 /**
  * The app's single storage entry point.
@@ -48,9 +50,49 @@ export async function seedPositions(): Promise<void> {
 	await db.positions.bulkAdd(missing);
 }
 
+/**
+ * Add any bundled exercises not already present. Insert-only, keyed by id, for
+ * the same reason as `seedDrills`.
+ */
+export async function seedExercises(): Promise<void> {
+	const existing = new Set(await db.exercises.toCollection().primaryKeys());
+	const missing = SEED_EXERCISES.filter((e) => !existing.has(e.id));
+	if (missing.length === 0) return;
+	await db.exercises.bulkAdd(missing);
+}
+
+/**
+ * Add any bundled programs not already present, each with its weeks, sessions
+ * and items.
+ *
+ * Insert-only at the granularity of the whole program: if the program row
+ * exists, its subtree is left entirely alone. Going row by row would be worse,
+ * not better — a half-seeded program is a session list with holes in it, and
+ * an enrolment mid-block would start showing different work than it did
+ * yesterday. A content change to an existing program therefore needs a new
+ * program id (a new block), which is also the honest thing to give a player
+ * partway through the old one.
+ */
+export async function seedPrograms(): Promise<void> {
+	const existing = new Set(await db.programs.toCollection().primaryKeys());
+	const missing = SEED_PROGRAM_PLANS.filter((plan) => !existing.has(plan.program.id));
+	if (missing.length === 0) return;
+
+	await db.transaction(
+		'rw',
+		[db.programs, db.program_weeks, db.program_sessions, db.program_items],
+		async () => {
+			await db.programs.bulkAdd(missing.map((plan) => plan.program));
+			await db.program_weeks.bulkAdd(missing.flatMap((plan) => plan.weeks));
+			await db.program_sessions.bulkAdd(missing.flatMap((plan) => plan.sessions));
+			await db.program_items.bulkAdd(missing.flatMap((plan) => plan.items));
+		}
+	);
+}
+
 /** Every bundled seed, for the one call the app layout makes on boot. */
 export async function seedReferenceData(): Promise<void> {
-	await Promise.all([seedDrills(), seedPositions()]);
+	await Promise.all([seedDrills(), seedPositions(), seedExercises(), seedPrograms()]);
 }
 
 export type { Repo, NewRepLog, DrillInput } from './repo';

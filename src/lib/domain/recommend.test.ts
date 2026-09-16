@@ -250,22 +250,22 @@ describe('isEligible', () => {
 	});
 
 	it('gates on age group and cannot be satisfied by a younger player', () => {
-		expect(isEligible({ min_age_group: 'u18' }, ctx({ age_group: 'u14' }))).toEqual({
+		expect(isEligible({ min_age_group: 'u17' }, ctx({ age_group: 'u15' }))).toEqual({
 			eligible: false,
-			reason: { kind: 'age', required: 'u18' }
+			reason: { kind: 'age', required: 'u17' }
 		});
-		expect(isEligible({ min_age_group: 'u18' }, ctx({ age_group: 'senior' }))).toEqual({
+		expect(isEligible({ min_age_group: 'u17' }, ctx({ age_group: 'senior' }))).toEqual({
 			eligible: true
 		});
-		expect(isEligible({ min_age_group: 'u18' }, ctx({ age_group: 'masters' }))).toEqual({
+		expect(isEligible({ min_age_group: 'u17' }, ctx({ age_group: 'masters' }))).toEqual({
 			eligible: true
 		});
 	});
 
 	it('reports age before equipment, so the youngest gate is the one explained', () => {
 		const result = isEligible(
-			{ min_age_group: 'u18', equipment_required: gym },
-			ctx({ age_group: 'u14', equipment_access: ['park'] })
+			{ min_age_group: 'u17', equipment_required: gym },
+			ctx({ age_group: 'u15', equipment_access: ['park'] })
 		);
 		expect(result).toMatchObject({ reason: { kind: 'age' } });
 	});
@@ -294,7 +294,7 @@ describe('describeExclusion', () => {
 	});
 
 	it('states the age band an item is for', () => {
-		expect(describeExclusion({ kind: 'age', required: 'u18' })).toBe('for Under 18 and above');
+		expect(describeExclusion({ kind: 'age', required: 'u17' })).toBe('for Under 17 and above');
 	});
 });
 

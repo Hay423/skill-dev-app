@@ -5,7 +5,9 @@ import {
 	type EquipmentAccess,
 	type Exercise,
 	type PlayerProfile,
+	type IsoDate,
 	type ProgramEnrolment,
+	type ProgramSessionLog,
 	type RepLog,
 	type Session,
 	type SyncMeta,
@@ -14,7 +16,8 @@ import {
 } from '$lib/types';
 import { localDate, newId, nowIso } from '$lib/util/time';
 import { db } from './db';
-import type { DrillInput, NewRepLog, ProfileInput, Repo } from './repo';
+import { programWeekOn } from '$lib/domain/schedule';
+import type { DrillInput, NewRepLog, ProfileInput, Repo, SessionProgressInput } from './repo';
 
 /** Lowercase, hyphenated, alphanumeric-only — matches the seed library's slugs. */
 function slugify(text: string): string {
@@ -260,6 +263,11 @@ export class LocalRepo implements Repo {
 		return db.positions.toArray();
 	}
 
+	async getDisplayName(): Promise<string | null> {
+		const profile = await this.getProfile();
+		return profile?.display_name ?? null;
+	}
+
 	async listExercises(filter?: {
 		movement_pattern?: Exercise['movement_pattern'];
 		equipment_access?: EquipmentAccess[];
@@ -284,6 +292,11 @@ export class LocalRepo implements Repo {
 		return rows;
 	}
 
+	async getProgramPlanBySlug(slug: string) {
+		const program = await db.programs.where('slug').equals(slug).first();
+		return program ? this.getProgramPlan(program.id) : undefined;
+	}
+
 	async getProgramPlan(program_id: Uuid) {
 		const program = await db.programs.get(program_id);
 		if (!program) return undefined;
@@ -298,20 +311,71 @@ export class LocalRepo implements Repo {
 		return { program, weeks, sessions, items };
 	}
 
-	/** The most recent enrolment that hasn't been completed. */
-	async activeEnrolment(): Promise<ProgramEnrolment | undefined> {
-		const recent = await db.program_enrolments.orderBy('started_at').reverse().limit(20).toArray();
-		return recent.find((e) => e.completed_at === null && e._deleted === 0);
+	/**
+	 * Every program still running, newest first.
+	 *
+	 * A block that has run past its final calendar week is closed off here
+	 * rather than in the UI. Programs end by the calendar, so something has to
+	 * notice the date has passed, and doing it on read means the completion is
+	 * recorded once — with a `_dirty` flag for the sync layer — instead of being
+	 * recomputed as a maybe by every caller.
+	 */
+	async activeEnrolments(): Promise<ProgramEnrolment[]> {
+		const rows = await db.program_enrolments.orderBy('started_at').reverse().toArray();
+		const open = rows.filter((e) => e.completed_at === null && e._deleted === 0);
+		const today = localDate();
+
+		const live: ProgramEnrolment[] = [];
+		for (const enrolment of open) {
+			const program = await db.programs.get(enrolment.program_id);
+			if (!program) continue;
+			if (programWeekOn(enrolment, today) > program.weeks) {
+				const at = nowIso();
+				await db.program_enrolments.update(enrolment.id, {
+					completed_at: at,
+					updated_at: at,
+					_dirty: 1
+				});
+				continue;
+			}
+			live.push(enrolment);
+		}
+		return live;
 	}
 
+	async activeEnrolment(
+		discipline?: TrainingProgram['discipline']
+	): Promise<ProgramEnrolment | undefined> {
+		const live = await this.activeEnrolments();
+		if (!discipline) return live[0];
+		for (const enrolment of live) {
+			const program = await db.programs.get(enrolment.program_id);
+			if (program?.discipline === discipline) return enrolment;
+		}
+		return undefined;
+	}
+
+	/**
+	 * Starting a program ends the one already running in the same discipline,
+	 * and only that one — a strength block and a running block are meant to run
+	 * side by side, which is what lets the calendar say "lift Tuesday, run
+	 * Thursday". Two blocks of the same discipline is a different thing: it is
+	 * twice the load with no plan behind it.
+	 */
 	async enrol(program_id: Uuid): Promise<ProgramEnrolment> {
+		const program = await db.programs.get(program_id);
+		if (!program) throw new Error('Program not found');
+
+		const current = await this.activeEnrolment(program.discipline);
+		if (current) await this.abandonEnrolment(current.id);
+
 		const at = nowIso();
 		const enrolment: ProgramEnrolment = {
 			id: newId(),
 			user_id: null,
 			program_id,
 			started_at: at,
-			current_week: 1,
+			started_on: localDate(at),
 			completed_at: null,
 			...freshMeta(at)
 		};
@@ -319,20 +383,72 @@ export class LocalRepo implements Repo {
 		return enrolment;
 	}
 
-	async advanceWeek(enrolment_id: Uuid): Promise<ProgramEnrolment | undefined> {
-		const enrolment = await db.program_enrolments.get(enrolment_id);
-		if (!enrolment) return undefined;
-		const program = await db.programs.get(enrolment.program_id);
-		const next_week = enrolment.current_week + 1;
-		const at = nowIso();
-		const done = program ? next_week > program.weeks : false;
+	/** Soft delete, so leaving a program can still be replayed to the server. */
+	async abandonEnrolment(enrolment_id: Uuid): Promise<void> {
 		await db.program_enrolments.update(enrolment_id, {
-			current_week: next_week,
-			completed_at: done ? at : null,
-			updated_at: at,
-			_dirty: 1
+			_deleted: 1,
+			_dirty: 1,
+			updated_at: nowIso()
 		});
-		return db.program_enrolments.get(enrolment_id);
+	}
+
+	/**
+	 * Upsert one session's progress, keyed by (enrolment, session) so a second
+	 * run through the same program starts with a clean slate.
+	 */
+	async logSessionProgress(input: SessionProgressInput): Promise<ProgramSessionLog> {
+		const existing = await db.program_session_logs
+			.where('program_session_id')
+			.equals(input.program_session_id)
+			.and((row) => row.enrolment_id === input.enrolment_id)
+			.first();
+
+		const at = nowIso();
+		const log: ProgramSessionLog = {
+			id: existing?.id ?? newId(),
+			user_id: existing?.user_id ?? null,
+			enrolment_id: input.enrolment_id,
+			program_session_id: input.program_session_id,
+			local_date: input.local_date,
+			// Copied, not stored by reference. Callers pass arrays straight out of
+			// Svelte 5 `$state`, and a reactive proxy is not structured-cloneable —
+			// IndexedDB throws `DataCloneError` on one. Spreading here makes the
+			// whole class of bug impossible at the seam rather than relying on
+			// every call site to remember `$state.snapshot`.
+			completed_item_ids: [...input.completed_item_ids],
+			// Kept rather than restamped, so the day a session was finished on
+			// does not move every time an exercise is unticked and ticked again.
+			completed_at: input.completed ? (existing?.completed_at ?? at) : null,
+			created_at: existing?.created_at ?? at,
+			updated_at: at,
+			synced_at: existing?.synced_at ?? null,
+			_dirty: 1,
+			_deleted: 0
+		};
+		await db.program_session_logs.put(log);
+		return log;
+	}
+
+	async listSessionLogs(filter?: {
+		from?: IsoDate;
+		to?: IsoDate;
+		enrolment_id?: Uuid;
+	}): Promise<ProgramSessionLog[]> {
+		let rows: ProgramSessionLog[];
+		if (filter?.enrolment_id) {
+			rows = await db.program_session_logs
+				.where('enrolment_id')
+				.equals(filter.enrolment_id)
+				.toArray();
+		} else if (filter?.from || filter?.to) {
+			rows = await db.program_session_logs
+				.where('local_date')
+				.between(filter.from ?? '0000-00-00', filter.to ?? '9999-99-99', true, true)
+				.toArray();
+		} else {
+			rows = await db.program_session_logs.toArray();
+		}
+		return rows.filter(notDeleted);
 	}
 }
 

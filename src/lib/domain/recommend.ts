@@ -3,6 +3,7 @@ import {
 	AGE_GROUP_LABELS,
 	EQUIPMENT_ACCESS_LABELS,
 	PHYSICAL_QUALITIES,
+	PHYSICAL_QUALITY_LABELS,
 	POSITION_LABELS,
 	SKILL_CATEGORIES,
 	SKILL_CATEGORY_LABELS,
@@ -10,12 +11,15 @@ import {
 	type Drill,
 	type EquipmentAccess,
 	type IsoDate,
+	type ExperienceLevel,
 	type PhysicalQuality,
 	type PlayerProfile,
 	type Position,
 	type PositionProfile,
-	type SkillCategory
+	type SkillCategory,
+	type TrainingProgram
 } from '$lib/types';
+import { describeProgramCaution, isMasters, MASTERS_COMFORTABLE_SESSIONS } from './load-policy';
 
 /**
  * Everything the recommendation layer is allowed to see. Pure input — no
@@ -97,7 +101,31 @@ export function positionWeights(ctx: RecommendationContext): BlendedWeights {
 
 /** Why an item was filtered out, structured so the UI can explain it precisely. */
 export type ExclusionReason =
-	{ kind: 'equipment'; missing: EquipmentAccess[] } | { kind: 'age'; required: AgeGroup };
+	| { kind: 'equipment'; missing: EquipmentAccess[] }
+	| { kind: 'age'; required: AgeGroup }
+	| { kind: 'junior_strength'; from: AgeGroup };
+
+/**
+ * The youngest band shown any strength program at all.
+ *
+ * Below this, resistance training is withheld entirely rather than regressed to
+ * bodyweight: the developing athlete's injury risk is not worth the marginal
+ * gain, and an app cannot supervise technique. This is a hard rule in the
+ * recommendation layer, not a default the UI may override — see "Duty of care"
+ * in plans/player-profile.md.
+ *
+ * Conditioning is deliberately unaffected. Running is what juniors should be
+ * doing, so withholding strength must not leave them with an empty page.
+ */
+export const STRENGTH_MIN_AGE_GROUP: AgeGroup = 'u17';
+
+/**
+ * Whether strength content is withheld from this player entirely. Exported so
+ * the UI can say so up front instead of rendering an unexplained empty list.
+ */
+export function isStrengthWithheld(profile: PlayerProfile): boolean {
+	return ageRank(profile.age_group) < ageRank(STRENGTH_MIN_AGE_GROUP);
+}
 
 /**
  * The shape eligibility cares about. Deliberately structural rather than
@@ -113,11 +141,36 @@ export type ExclusionReason =
 export interface EligibilityInput {
 	equipment_required?: EquipmentAccess[];
 	min_age_group?: AgeGroup;
+	/** Present on `TrainingProgram`; absent on drills, which are never load-bearing. */
+	discipline?: TrainingProgram['discipline'];
 }
 
 /** Age bands are ordered, so gating is an index comparison on the fixed taxonomy. */
 function ageRank(group: AgeGroup): number {
 	return AGE_GROUPS.indexOf(group);
+}
+
+/**
+ * Kit that contains other kit. A full gym has dumbbells and bands in it, so a
+ * player who ticked only "Full gym" must not be excluded from a program written
+ * for home weights.
+ *
+ * Deliberately only this one entry. An oval arguably implies goals and open
+ * grass, but "arguably" is not good enough to hide content on: the rest of the
+ * vocabulary describes places rather than equipment, and a player who has an
+ * oval but no posts is a real case.
+ */
+const EQUIPMENT_IMPLIES: Partial<Record<EquipmentAccess, EquipmentAccess[]>> = {
+	full_gym: ['home_weights', 'bands']
+};
+
+/** What a player can actually train with, including the kit their access implies. */
+export function expandEquipmentAccess(access: EquipmentAccess[]): Set<EquipmentAccess> {
+	const owned = new Set(access);
+	for (const item of access) {
+		for (const implied of EQUIPMENT_IMPLIES[item] ?? []) owned.add(implied);
+	}
+	return owned;
 }
 
 /**
@@ -137,13 +190,23 @@ export function isEligible(
 	item: EligibilityInput,
 	ctx: RecommendationContext
 ): { eligible: true } | { eligible: false; reason: ExclusionReason } {
+	// Checked ahead of `min_age_group` so the player is told the real reason:
+	// "strength training starts at Under 17", not "this program is for Under 17
+	// and above". The two would otherwise be indistinguishable for a U15.
+	if (item.discipline === 'strength' && isStrengthWithheld(ctx.profile)) {
+		return {
+			eligible: false,
+			reason: { kind: 'junior_strength', from: STRENGTH_MIN_AGE_GROUP }
+		};
+	}
+
 	if (item.min_age_group && ageRank(ctx.profile.age_group) < ageRank(item.min_age_group)) {
 		return { eligible: false, reason: { kind: 'age', required: item.min_age_group } };
 	}
 
 	const required = item.equipment_required ?? [];
 	if (required.length > 0 && ctx.profile.equipment_access.length > 0) {
-		const owned = new Set(ctx.profile.equipment_access);
+		const owned = expandEquipmentAccess(ctx.profile.equipment_access);
 		const missing = required.filter((eq) => !owned.has(eq));
 		if (missing.length > 0) {
 			return { eligible: false, reason: { kind: 'equipment', missing } };
@@ -160,6 +223,8 @@ export function describeExclusion(reason: ExclusionReason): string {
 			return `needs ${formatList(reason.missing.map((e) => EQUIPMENT_ACCESS_LABELS[e].toLowerCase()))}`;
 		case 'age':
 			return `for ${AGE_GROUP_LABELS[reason.required]} and above`;
+		case 'junior_strength':
+			return `strength training starts at ${AGE_GROUP_LABELS[reason.from]}`;
 	}
 }
 
@@ -225,10 +290,32 @@ const difficultyFit: Scorer = (drill, ctx) => {
 	return 1 - Math.abs(drill.difficulty - target) / 2;
 };
 
+/**
+ * Shorter drills first, for masters only.
+ *
+ * Deliberately about time rather than difficulty. A masters player is usually
+ * the most experienced person in the club and training around work and family:
+ * what they are short of is twenty spare minutes, not ability. Dropping them to
+ * foundation drills would be solving the wrong problem, and patronising with
+ * it.
+ *
+ * Everyone else gets a flat score, which leaves their ranking exactly as it
+ * was — a constant scorer shifts every drill equally.
+ */
+const NEUTRAL = 0.5;
+/** Drills at or under this are "short" for scoring purposes. */
+const SHORT_DRILL_MINUTES = 10;
+const brevityFit: Scorer = (drill, ctx) => {
+	if (!isMasters(ctx.profile)) return NEUTRAL;
+	if (drill.duration_minutes <= SHORT_DRILL_MINUTES) return 1;
+	return Math.max(0, 1 - (drill.duration_minutes - SHORT_DRILL_MINUTES) / 20);
+};
+
 const SCORERS: Array<{ scorer: Scorer; weight: number }> = [
-	{ scorer: positionFit, weight: 0.6 },
+	{ scorer: positionFit, weight: 0.55 },
 	{ scorer: positionTagFit, weight: 0.2 },
-	{ scorer: difficultyFit, weight: 0.2 }
+	{ scorer: difficultyFit, weight: 0.15 },
+	{ scorer: brevityFit, weight: 0.1 }
 ];
 
 /** The skill weight above which a category counts as a priority for the position. */
@@ -297,5 +384,202 @@ export function priorityCategories(ctx: RecommendationContext, limit = 3): Skill
 	const { skills } = positionWeights(ctx);
 	return SKILL_CATEGORIES.filter((c) => skills[c] > 0)
 		.sort((a, b) => skills[b] - skills[a] || a.localeCompare(b))
+		.slice(0, limit);
+}
+
+export interface ScoredProgram {
+	program: TrainingProgram;
+	/** 0–1. Comparable within one call, not across profiles. */
+	score: number;
+	/** Short "why this one" line, or null when nothing about it stands out. */
+	reason: string | null;
+	/** Why this one asks more than the player needs, for a block shown but not led with. */
+	caution: string | null;
+}
+
+export interface ProgramRecommendations {
+	recommended: ScoredProgram[];
+	excluded: Array<{ program: TrainingProgram; reason: ExclusionReason }>;
+}
+
+type ProgramScorer = (
+	program: TrainingProgram,
+	ctx: RecommendationContext,
+	weights: BlendedWeights
+) => number;
+
+/**
+ * How well the program's target qualities line up with what the position
+ * demands. Averaged rather than summed so a program targeting one quality the
+ * player needs badly is not beaten by one targeting four they need mildly.
+ */
+const qualityFit: ProgramScorer = (program, _ctx, weights) => {
+	if (program.target_qualities.length === 0) return 0.5;
+	const total = program.target_qualities.reduce((sum, q) => sum + (weights.physical[q] ?? 0), 0);
+	return total / program.target_qualities.length;
+};
+
+/**
+ * Programs written for a position beat general ones, but an untargeted program
+ * is general rather than irrelevant — most strength work applies to everyone —
+ * so it sits well above a program written for somebody else's role.
+ */
+const UNTARGETED_PROGRAM_FIT = 0.6;
+const programPositionFit: ProgramScorer = (program, ctx) => {
+	if (program.target_positions.length === 0) return UNTARGETED_PROGRAM_FIT;
+	if (program.target_positions.includes(ctx.profile.primary_position)) return 1;
+	const secondary = ctx.profile.secondary_position;
+	if (secondary && program.target_positions.includes(secondary)) return 0.7;
+	return 0;
+};
+
+/**
+ * Experience is a scorer, not a filter. A first-year player choosing an
+ * advanced block is making a training mistake, not an unsafe one — the unsafe
+ * cases are age and load, and those are already hard filters. Ranking it down
+ * keeps the list honest without emptying it.
+ */
+const EXPERIENCE_ORDER: ExperienceLevel[] = ['first_year', 'developing', 'experienced'];
+const programExperienceFit: ProgramScorer = (program, ctx) => {
+	if (program.experience.length === 0) return 0.5;
+	if (program.experience.includes(ctx.profile.experience)) return 1;
+	const player = EXPERIENCE_ORDER.indexOf(ctx.profile.experience);
+	const nearest = Math.min(
+		...program.experience.map((e) => Math.abs(EXPERIENCE_ORDER.indexOf(e) - player))
+	);
+	return Math.max(0, 1 - nearest / 2);
+};
+
+/**
+ * Whether the program asks for more sessions a week than the player has said
+ * they train. Asking for fewer is fine — that leaves room for skills work —
+ * so only overshoot is penalised.
+ */
+const availabilityFit: ProgramScorer = (program, ctx) => {
+	const available = ctx.profile.sessions_per_week;
+	if (available <= 0) return 0.5; // Unanswered, so no signal either way.
+	if (program.sessions_per_week <= available) return 1;
+	return Math.max(0, 1 - (program.sessions_per_week - available) / available);
+};
+
+/**
+ * For masters, lighter blocks first: fewer sessions a week, and in-season
+ * maintenance ahead of a full pre-season.
+ *
+ * Ranking rather than filtering, deliberately. A masters player who wants a
+ * pre-season block can still have one — it simply is not what the app leads
+ * with, and it carries a note saying what it is. Hiding it would be deciding
+ * for them.
+ */
+const recoveryFit: ProgramScorer = (program, ctx) => {
+	if (!isMasters(ctx.profile)) return NEUTRAL;
+	const frequency = Math.max(
+		0,
+		1 - Math.max(0, program.sessions_per_week - MASTERS_COMFORTABLE_SESSIONS) / 3
+	);
+	const phase = program.phase === 'pre_season' ? 0.5 : 1;
+	return frequency * phase;
+};
+
+/**
+ * Content written for the player's own age band, ahead of content written for
+ * a much younger one.
+ *
+ * `min_age_group` is a floor, not an audience: it stops a fifteen year old
+ * reaching a barbell, and it does nothing to stop a forty year old being led to
+ * a block named "Under 17". The gap is what matters, and only a wide one — a
+ * single band's difference is normal and often right, since a first-year senior
+ * belongs in the same foundations block as a U17. Two bands or more means the
+ * block was written for somebody else.
+ */
+const AGE_FIT_TOLERANCE = 1;
+const ageFit: ProgramScorer = (program, ctx) => {
+	const gap = ageRank(ctx.profile.age_group) - ageRank(program.min_age_group);
+	if (gap <= AGE_FIT_TOLERANCE) return 1;
+	return Math.max(0, 1 - (gap - AGE_FIT_TOLERANCE) / 3);
+};
+
+const PROGRAM_SCORERS: Array<{ scorer: ProgramScorer; weight: number }> = [
+	{ scorer: qualityFit, weight: 0.35 },
+	{ scorer: programPositionFit, weight: 0.15 },
+	{ scorer: programExperienceFit, weight: 0.15 },
+	{ scorer: availabilityFit, weight: 0.1 },
+	{ scorer: recoveryFit, weight: 0.15 },
+	{ scorer: ageFit, weight: 0.1 }
+];
+
+/** The physical weight above which a quality counts as a priority for the position. */
+const PRIORITY_QUALITY_WEIGHT = 0.75;
+
+function explainProgram(
+	program: TrainingProgram,
+	ctx: RecommendationContext,
+	weights: BlendedWeights
+): string | null {
+	if (program.target_positions.includes(ctx.profile.primary_position)) {
+		return `Written for ${POSITION_LABELS[ctx.profile.primary_position].toLowerCase()}`;
+	}
+	const priority = program.target_qualities.find(
+		(q) => (weights.physical[q] ?? 0) >= PRIORITY_QUALITY_WEIGHT
+	);
+	if (priority) {
+		return `${PHYSICAL_QUALITY_LABELS[priority]} is a priority for your position`;
+	}
+	if (program.experience.includes(ctx.profile.experience))
+		return 'Pitched at your experience level';
+	return null;
+}
+
+/**
+ * Ranks programs for a player: eligibility as a hard filter, then weighted
+ * scoring over what survives.
+ *
+ * The exclusions come back rather than being dropped so the UI can explain a
+ * short list. For a player below `STRENGTH_MIN_AGE_GROUP` that matters most of
+ * all: every strength program will be excluded, and saying why is the whole
+ * point — an unexplained empty list reads as a broken app, and this one is a
+ * deliberate decision about their safety.
+ */
+export function recommendPrograms(
+	programs: TrainingProgram[],
+	ctx: RecommendationContext,
+	limit?: number
+): ProgramRecommendations {
+	const weights = positionWeights(ctx);
+	const recommended: ScoredProgram[] = [];
+	const excluded: ProgramRecommendations['excluded'] = [];
+
+	for (const program of programs) {
+		const eligibility = isEligible(program, ctx);
+		if (!eligibility.eligible) {
+			excluded.push({ program, reason: eligibility.reason });
+			continue;
+		}
+		const score = PROGRAM_SCORERS.reduce(
+			(sum, { scorer, weight }) => sum + scorer(program, ctx, weights) * weight,
+			0
+		);
+		recommended.push({
+			program,
+			score,
+			reason: explainProgram(program, ctx, weights),
+			caution: describeProgramCaution(ctx.profile, program.sessions_per_week, program.phase)
+		});
+	}
+
+	// Name breaks ties so the order is stable across reloads.
+	recommended.sort((a, b) => b.score - a.score || a.program.name.localeCompare(b.program.name));
+
+	return {
+		recommended: limit === undefined ? recommended : recommended.slice(0, limit),
+		excluded
+	};
+}
+
+/** The qualities the position leans on hardest, strongest first. Drives the "why these" copy. */
+export function priorityQualities(ctx: RecommendationContext, limit = 3): PhysicalQuality[] {
+	const { physical } = positionWeights(ctx);
+	return PHYSICAL_QUALITIES.filter((q) => physical[q] > 0)
+		.sort((a, b) => physical[b] - physical[a] || a.localeCompare(b))
 		.slice(0, limit);
 }

@@ -1,28 +1,42 @@
 <script lang="ts">
-	import RecommendedDrills from '$lib/components/RecommendedDrills.svelte';
 	import StatCard from '$lib/components/StatCard.svelte';
+	import RecommendedDrills from '$lib/components/RecommendedDrills.svelte';
+	import TodayPlan from '$lib/components/TodayPlan.svelte';
 	import { repo } from '$lib/data';
 	import { currentStreak, formatAccuracy, totals, totalsByCategory } from '$lib/domain/stats';
-	import { SKILL_CATEGORY_LABELS, type RepLog } from '$lib/types';
+	import { trainingDatesFromLogs, type PlannedDay } from '$lib/domain/schedule';
+	import { loadWeekPlan } from '$lib/plan';
+	import { SKILL_CATEGORY_LABELS, type ProgramSessionLog, type RepLog } from '$lib/types';
 	import { addDays, localDate } from '$lib/util/time';
 
 	const today = localDate();
 
 	let allLogs = $state<RepLog[]>([]);
+	let sessionLogs = $state<ProgramSessionLog[]>([]);
+	let planDays = $state<PlannedDay[]>([]);
 	let loading = $state(true);
 
-	$effect(() => {
+	async function load() {
 		// A 90-day window covers the streak and every summary on this page
 		// without pulling the entire history into memory.
-		repo
-			.listRepLogs({ from: addDays(today, -90) })
-			.then((logs) => (allLogs = logs))
-			.finally(() => (loading = false));
+		const [logs, ticks, plan] = await Promise.all([
+			repo.listRepLogs({ from: addDays(today, -90) }),
+			repo.listSessionLogs({ from: addDays(today, -90) }),
+			loadWeekPlan()
+		]);
+		allLogs = logs;
+		sessionLogs = ticks;
+		planDays = plan.days;
+	}
+
+	$effect(() => {
+		load().finally(() => (loading = false));
 	});
 
 	const todayLogs = $derived(allLogs.filter((l) => l.local_date === today));
 	const todayTotals = $derived(totals(todayLogs));
-	const streak = $derived(currentStreak(allLogs, today));
+	// A ticked-off program session counts as a training day, same as logged reps.
+	const streak = $derived(currentStreak(allLogs, today, trainingDatesFromLogs(sessionLogs)));
 	const byCategory = $derived(totalsByCategory(todayLogs));
 </script>
 
@@ -56,6 +70,8 @@
 			Browse drills
 		</a>
 	</div>
+
+	<TodayPlan days={planDays} {today} onchange={load} />
 
 	<RecommendedDrills />
 

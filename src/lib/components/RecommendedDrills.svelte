@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { repo } from '$lib/data';
+	import { drillLimitFor } from '$lib/domain/load-policy';
 	import {
 		describeExclusion,
 		priorityCategories,
@@ -16,11 +17,15 @@
 	import { localDate } from '$lib/util/time';
 
 	interface Props {
-		/** How many drills to show. Three fits above the fold on a 390px screen. */
+		/**
+		 * How many drills to show. Left unset, it follows the player: three fits
+		 * above the fold on a 390px screen, and masters get fewer — see
+		 * `drillLimitFor` in `domain/load-policy.ts`.
+		 */
 		limit?: number;
 	}
 
-	let { limit = 3 }: Props = $props();
+	let { limit }: Props = $props();
 
 	let profile = $state<PlayerProfile | undefined>(undefined);
 	let positions = $state<PositionProfile[]>([]);
@@ -41,8 +46,10 @@
 		profile ? { profile, positions, today: localDate() } : null
 	);
 
+	const shown = $derived(limit ?? drillLimitFor(profile));
+
 	const result = $derived(
-		context ? recommendDrills(drills, context, limit) : { recommended: [], excluded: [] }
+		context ? recommendDrills(drills, context, shown) : { recommended: [], excluded: [] }
 	);
 
 	const focus = $derived(

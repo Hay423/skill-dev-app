@@ -1,9 +1,11 @@
 # Plan — Player profile & position-driven training
 
-Status: **Phase 1 (profile foundation) and Phase 3 (drill recommendations)
-done. Drill library admin done, ahead of the phasing below. Phase 2 (the CSV
-content pipeline) is still open and now the main gap. Injury flags have been
-forked out of the app entirely — see "Injuries: forked out" below.**
+Status: **Phases 1 (profile foundation), 3 (drill recommendations) and 4
+(strength programs) done. Drill library admin done, ahead of the phasing
+below. Phase 2 (the CSV content pipeline) is still open and remains the main
+gap — Phase 4 worked around it the same way Phase 3 did, with hand-authored
+bundled seeds. Injury flags have been forked out of the app entirely — see
+"Injuries: forked out" below.**
 Supersedes nothing; slots in ahead of "Guided sessions" in
 [ROADMAP.md](ROADMAP.md).
 
@@ -125,7 +127,235 @@ Supersedes nothing; slots in ahead of "Guided sessions" in
     recommendation, and `physical_weights` is populated but not yet read by
     anything — Phase 4 is its first consumer._
 
-- **Phases 2, 4–6** have not started — they need the open questions below
+- **Phase 4 — Strength programs. Done.** Taken before Phase 2 for the same
+  reason Phase 3 was: the CSV pipeline is blocked on content files that do not
+  exist yet, and the program layer only ever needed content in the shape the
+  importer will eventually emit.
+  - **Age bands renamed and one added.** `AGE_GROUPS` is now
+    `u11|u13|u15|u17|senior|masters` (was `u12|u14|u16|u18|senior|masters`),
+    labelled Under 11/13/15/17, Seniors, Masters. **Dexie v5** rewrites stored
+    profiles — `u12→u13`, `u14→u15`, `u16→u17`, `u18→senior`, anything
+    unrecognised to `u11` — and `PLAYER_PROFILE_SCHEMA_VERSION` is now `3`. The
+    value is rewritten rather than mapped at read time because the array's
+    _order_ is what every age gate compares against: a row left carrying `u14`
+    ranks as -1 and gates wrongly.
+  - **U11–U15 get no strength programs at all.** `STRENGTH_MIN_AGE_GROUP` in
+    `domain/recommend.ts` is `u17`, and `isEligible` rejects anything with
+    `discipline: 'strength'` below it, ahead of the `min_age_group` check so
+    the player is told the real reason. Conditioning is untouched — the whole
+    point is that a junior is left with plenty to do.
+  - **The gate is applied at three layers, not one**: the recommendation list,
+    the program detail page (so a typed URL cannot get around it) and the
+    session view (which additionally drops any individual exercise the player
+    is too young for). The Phase 4 acceptance criterion is a test, not a
+    manual check — see `domain/recommend-programs.test.ts`.
+  - **Content ships as bundled seeds**, following Phase 3's pattern exactly:
+    `data/seed/exercises.ts` (28 exercises) and `data/seed/programs.ts` (three
+    strength blocks, three conditioning blocks), seeded insert-only by
+    `seedExercises()` / `seedPrograms()`. **No new Dexie version was needed for
+    the content tables** — they have existed and been empty since v2, exactly
+    as this plan anticipated.
+  - **Sessions are authored once per program and repeated across weeks**, with
+    progression carried by `ProgramWeek.intensity_modifier` and applied at
+    render time by `scaledLoad`/`scaledRpe`. An eight-week block stays readable
+    in one screen and a deload is a one-line change. Session and item ids are
+    derived from the program id rather than hand-typed; a test asserts they are
+    unique across the library.
+  - Seed content is held to its own invariants by tests: no strength program
+    below `u17`, no `%1RM` below senior, no exercise whose own age floor exceeds
+    its program's, no equipment a program does not declare, and no week whose
+    intensity scales a prescription past 90% 1RM.
+  - `domain/program-plan.ts` holds the pure rendering logic — week slicing,
+    prescription formatting, load scaling — with `program-plan.test.ts`
+    alongside it. Components render; they do not calculate.
+  - UI: `/train` (browser, split strength/conditioning, with the withheld-strength
+    explanation for juniors), `/train/[slug]` (detail, week-by-week, enrol /
+    advance / leave) and `/train/[slug]/[session]` (session view). A Train tab
+    in `BottomNav`, and a "This week" block on Today via `CurrentProgram.svelte`.
+    `SupervisionNote.svelte` is the persistent, non-dismissable note on loaded
+    content.
+  - **Deviation**: `recommendPrograms` returns `{ recommended, excluded }`
+    rather than a bare `TrainingProgram[]`, matching what `recommendDrills`
+    already does and for the same reason — exclusions are shown, not hidden.
+  - **Two real bugs found and fixed in the process.** `activeEnrolment()` has
+    sorted on `program_enrolments.started_at` since Phase 1, which was never
+    indexed — Dexie throws `SchemaError` on an unindexed `orderBy`, so the call
+    has always been broken and nothing had reached it until enrolment got a UI.
+    v5 adds the index. Separately, `isEligible` treated equipment as a flat set,
+    so a player who ticked "Full gym" but not "Home weights" was excluded from
+    dumbbell programs; `expandEquipmentAccess` now expands `full_gym` to include
+    `home_weights` and `bands`. That fix applies to drills too.
+  - Verified with a real browser (Playwright against `npm run dev`, 390px): a
+    U15 profile saw the withheld-strength note and three running programs with
+    no strength program anywhere; a typed `/train/preseason-max-strength` URL
+    was refused; switching to Seniors brought the strength blocks back; enrol →
+    advance to week 2 → open a session showed loads scaled to that week (80%
+    → 75%); Today showed the week's three sessions; then switching back to U15
+    killed a bookmarked session URL. No console errors.
+  - _Out of scope, deliberately: per-session completion tracking (the week is
+    advanced by hand), and any editing surface for exercises or programs — that
+    is still Phase 2._
+
+- **Phase 4b — Ticking and the training calendar. Done.** An extension of
+  Phase 4 rather than a phase of its own: the programs existed but nothing
+  said _when_ to do them, and nothing recorded that they had been.
+  - **Two enrolments, one per discipline.** `enrol` now replaces only the block
+    of the same discipline, so a strength block and a running block run side by
+    side — which is what lets the calendar say "lift Tuesday, run Thursday".
+    `activeEnrolments()` replaces the single-row `activeEnrolment()`, which
+    survives as a per-discipline lookup.
+  - **A program week is a calendar week.** `ProgramEnrolment.current_week` is
+    gone, replaced by `started_on` (the local day of enrolment); `programWeekOn`
+    derives the week from the date. A stored counter would have been a second
+    source of truth that disagreed with the calendar the first time a week was
+    missed. Missing a week now costs that week rather than stalling the block,
+    and `advanceWeek` is gone from `Repo` — there is nothing left to advance.
+  - **Time also ends a program.** `activeEnrolments()` stamps `completed_at` on
+    any block whose final calendar week has passed. That write happens on read,
+    deliberately: something has to notice the date, and recording it once beats
+    every caller recomputing it as a maybe.
+  - **Dexie v6** adds `program_session_logs` (one row per session per enrolment,
+    holding the ticked exercise ids and whether the session is finished) and
+    migrates enrolments from `current_week` to `started_on`. Ticked items are an
+    array on the row rather than a table of their own — an item tick has no life
+    outside its session, and the array maps onto a Postgres `uuid[]`.
+  - `src/lib/domain/schedule.ts` is the new pure core: `planWeek` places each
+    enrolled program's sessions on the days the player actually trains. Spread
+    evenly; strength and running on separate days where there is room; doubling
+    up, never dropping, when there are more sessions than days — with the UI
+    saying plainly that a day is carrying two. Running goes before lifting on a
+    doubled day.
+  - **Rest days suggest skills work**, rotated through the existing drill
+    recommendations, on training days no program landed on. **A rep log is the
+    tick for a skills day** — the app already records that the work happened, so
+    a second record would only give it two answers to the same question.
+  - **A ticked session counts towards the streak.** `currentStreak` takes an
+    `alsoTrainedOn` list. A player who does exactly what the app prescribed and
+    watches their streak break learns to ignore the calendar.
+  - **Backfill is allowed inside the current week only** (`isTickable`).
+    Training gets logged late; a closed week that could still be edited would
+    make the history, and the streak built on it, writable after the fact.
+  - A session is done exactly when its exercises are: ticking the last one
+    finishes it, unticking any one reopens it, and "mark whole session done"
+    ticks them all. The two states cannot disagree.
+  - UI: `WeekPlan.svelte` (Mon–Sun strip plus the selected day) on `/train`,
+    `TodayPlan.svelte` on Today, per-exercise ticks in the session view.
+    `src/lib/plan.ts` is the one place that assembles a week from storage.
+  - **Three bugs found in the browser.** A Svelte 5 `$state` proxy array reached
+    Dexie again (`DataCloneError`) — the fourth time in this project, so the fix
+    went in at the repo seam this time rather than at the call site. The
+    "already includes this week's adjustment" note appeared on running sessions
+    where nothing was scaled. And underneath that: conditioning programs'
+    `intensity_modifier` did nothing at all, since only `%1RM` and RPE were ever
+    scaled — `scaledRepsCount` and `scaledWorkSeconds` now scale running volume,
+    which is where a running block actually progresses.
+  - Verified with a real browser (Playwright, 390px): three strength and three
+    running sessions across three available days doubled up on all three and
+    said so; six available days with one block put strength on Monday and
+    Saturday and rotated goalkicking, evasion and tackling through the days
+    between; ticking a session moved the week counter and lifted the streak to
+    1; ticking every exercise in a session auto-completed it. No console errors.
+  - _Out of scope: browsing past weeks (the strip shows the current week only,
+    and `planWeek` already takes an `anchor` for when that changes), and any
+    notion of a missed session beyond it simply not being ticked._
+
+- **Phase 4c — U17 blocks, masters load policy, week browsing. Done.**
+  - **Two U17 strength blocks**, `u17-preseason-strength` (8 weeks, 3 a week)
+    and `u17-in-season-maintenance` (6 weeks, 2 a week), mirroring the senior
+    blocks they lead into: same shape, same session names, dumbbells instead of
+    a loaded barbell, and prescribed by RPE and rep range because a percentage
+    implies a tested one-rep max and no junior should be testing one. A U17
+    finishing the pre-season block steps into the senior version the following
+    year and recognises every session.
+  - **An age-fit scorer, found by building the above.** `min_age_group` is a
+    floor, not an audience: it stops a fifteen year old reaching a barbell and
+    does nothing to stop a forty year old being led to a block called "Under
+    17" — which is exactly what happened the first time a masters profile was
+    scored. Content two or more bands below the player now ranks down. A gap of
+    one band is untouched, because a first-year senior belongs in the same
+    foundations block as a U17.
+  - **`domain/load-policy.ts` holds the masters policy in one place.** Loads,
+    running volume and RPE all scale by `MASTERS_LOAD_MODIFIER` (0.85) on top of
+    the week's own intensity — two multipliers rather than one, so a masters
+    deload is still lighter than a masters baseline. Lighter blocks rank first
+    via a `recoveryFit` scorer, heavier ones carry a caution chip saying what
+    they are, drills drop to two, and the calendar fills at most two days with
+    optional skills work.
+  - **Nothing is withheld from masters.** Ranking and scaling, never filtering:
+    a masters player who wants the pre-season block can still have it. The
+    reasoning is in "Duty of care" above, and it is the opposite of the junior
+    rule on purpose.
+  - **Masters drills are fewer and shorter, not easier.** A `brevityFit` scorer
+    ranks short drills up for masters only; difficulty is left alone. What a
+    masters player is short of is twenty spare minutes, not ability, and
+    dropping the most experienced person at the club to foundation drills would
+    solve the wrong problem.
+  - **Week browsing**, bounded by the blocks actually running
+    (`browsableRange`): arrows step a week, a button returns to this one, and
+    both ends disable rather than disappear. Past weeks stay read-only, so the
+    bound is not a safety measure — it is that a calendar you can page through
+    forever stops being a plan.
+  - Verified with a real browser (Playwright, 390px): a U17 profile saw both new
+    blocks and no senior ones; a masters profile led with in-season maintenance,
+    showed "3 sessions a week — more than most masters players need" on the
+    pre-season block, and rendered its week-1 back squat at 60% rather than 80%
+    with the copy naming both reductions; browsing stepped from week 1 to week 8
+    of an eight-week block and stopped at each end. No console errors.
+
+- **Phase 4d — Affirmations, position-driven exercises. Done.**
+  - **Affirmations** (`domain/affirmations.ts`) fire after a rep log is saved
+    and after a program session is ticked done — both count towards the
+    streak, so both are acknowledged. Contextual by design: the line is built
+    from the streak, the accuracy, and which session of which week, with
+    milestones (first ever record, a streak length in
+    `STREAK_MILESTONES`, every session of a week, the last week of a block, a
+    sharp set) taking priority over the routine line. Deterministic, not
+    random — seeded from the day and the work so the line does not reshuffle
+    on a re-render and tests can assert on it. Every line is written to read
+    correctly with no display name set.
+  - Shown inline via `AffirmationCard.svelte`, where the work happened, not as
+    a toast: on the Log page (which now stays put after saving instead of
+    redirecting home, with "Log another set" and "Done"), and on whichever of
+    `WeekPlan`, `TodayPlan` or the session page the player ticked a session
+    done from. `src/lib/affirm.ts` composes the streak and "is this the very
+    first thing ever" check from the repo, the same seam pattern as
+    `plan.ts`.
+  - **Position-driven exercises** (`domain/exercise-fit.ts`) is the missing
+    link Phase 4 left: `PositionProfile.physical_weights` ranked whole
+    programs since Phase 3, and `Exercise.primary_qualities` was authored since
+    Phase 4 and read by nothing. `exerciseFit` joins them, and `tailorSession`
+    applies it to one session two ways:
+    - **Extras**: up to `maxExtrasFor` (2, or 1 for masters) position-specific
+      exercises appended as clearly optional, one per movement pattern the
+      session does _not_ already train (never olympic — a skill lift is never
+      an optional add-on). Ranking the whole library by fit alone would bolt
+      another heavy lift onto a session that just finished five sets of squats;
+      restricting to untrained patterns is what makes an extra actually
+      additive.
+    - **Substitutions**: an accessory (never the opening lift) swapped for a
+      same-movement-pattern exercise that fits the position markedly better
+      (`SUBSTITUTION_MARGIN`, 0.15), shown with a tag naming what it replaced.
+      High enough that most sessions see none at all — a program that
+      silently rearranges itself every time is one nobody can reason about.
+    - Both run through `isEligible` and a program's own declared equipment
+      (`withinProgramEquipment`), so the age gate and gear rules that already
+      constrain the authored session apply identically to anything added to it.
+  - Six new exercises added to reach positions the existing library under-
+    served — lateral bound, single-leg hop and stick, Copenhagen adductor hold,
+    farmer's carry, dumbbell overhead press — plus an optional
+    `Exercise.accessory_dose` field for the handful where the per-movement-
+    pattern default reads wrong (a plank is not "3 × 10").
+  - Verified with a real browser (Playwright, 390px): the very first rep log
+    ever produced "First one's in the book, Matt"; a 20-from-20 set produced
+    the sharp-set milestone; ticking a session produced its line on Today; a
+    ruck's pre-season session showed bench press and chin-up as extras (the
+    session's squat/hinge/plyometric work left push and pull untrained); and a
+    small forward's maintenance session substituted "Single-leg balance" for
+    the authored "Dead bug" with the tag explaining why, without being asked
+    to — the margin rule found a real case in the seed content on its own. No
+    console errors in any run.
+
+- **Phases 2, 5–6** have not started — they need the open questions below
   answered, and Phase 2 specifically needs your content files. Note for
   whoever picks up Phase 2: the `exercises`/`programs`/`program_weeks`/
   `program_sessions`/`program_items` tables already exist (added empty in v2,
@@ -206,11 +436,34 @@ None of these are hard to build; all of them are hard to retrofit.
 carries `min_age_group`. The recommendation layer filters on it and cannot be
 overridden by the UI:
 
-| Age group | Resistance training exposure                                                         |
-| --------- | ------------------------------------------------------------------------------------ |
-| U12–U14   | Bodyweight, landing mechanics, technique only. No external load prescribed.          |
-| U16       | Light external load, technique-led, higher reps. No 1RM testing, no maximal singles. |
-| U18+      | Full programs, `%1RM` and RPE prescription available.                                |
+| Age group | Resistance training exposure                                                               |
+| --------- | ------------------------------------------------------------------------------------------ |
+| U11–U15   | **No strength programs at all.** Running, skills and games only.                           |
+| U17       | Light external load, technique-led, higher reps. RPE only — no `%1RM`, no maximal singles. |
+| Seniors   | Full programs, `%1RM` and RPE prescription available.                                      |
+| Masters   | Full programs, everything scaled to 85%. Shorter blocks lead; nothing is withheld.         |
+
+**Masters is a reduction, not a restriction, and the difference is the point.**
+Resistance training is the main defence against the muscle loss and tendon
+stiffness behind the soft-tissue injuries that actually cost masters players
+seasons, so withholding it would work against the reason for reducing the load.
+The junior rule removes strength work because a growing body does not need it
+yet; the masters rule keeps it and makes it lighter. Both live in the
+recommendation layer, and they are deliberately not the same mechanism — see
+`domain/load-policy.ts`.
+
+The U11–U15 row is stricter than this plan originally proposed (bodyweight and
+landing mechanics were going to be allowed) and the decision was deliberate:
+the marginal benefit of app-prescribed resistance work at that age does not
+justify the injury risk of doing it unsupervised. Withholding it entirely is
+also far easier to reason about than a bodyweight-only carve-out, which would
+have needed its own rules about what counts as load.
+
+The band names changed at the same time — U12/U14/U16/U18 became
+U13/U15/U17/Seniors, with U11 added below — to match how community football
+actually grades juniors. Dexie v5 rewrites stored profiles; see the migration
+comment in `src/lib/data/db.ts` for why the value has to be rewritten rather
+than mapped at read time.
 
 **Injury flags exclude, they do not treat.** A flagged region removes
 contraindicated exercises from recommendations and surfaces a regression where
@@ -286,7 +539,7 @@ export interface PlayerProfile extends Owned, SyncMeta {
 	primary_position: Position;
 	secondary_position: Position | null;
 	/** Stored rather than DOB where the player prefers; DOB is optional. */
-	age_group: AgeGroup; // 'u12'|'u14'|'u16'|'u18'|'senior'|'masters'
+	age_group: AgeGroup; // 'u11'|'u13'|'u15'|'u17'|'senior'|'masters'
 	date_of_birth: IsoDate | null;
 	experience: ExperienceLevel; // 'first_year'|'developing'|'experienced'
 	sessions_per_week: number;
@@ -607,9 +860,11 @@ position get demonstrably different drill orders._ — verified in a browser:
 small forward, key defender and ruck each produced a different order from the
 same library.
 
-**4 — Strength programs.** Program browser, detail, enrolment, session view, age
-gating enforced. _Done when: a U14 profile cannot surface a loaded lift by any
-route through the UI._
+**4 — Strength programs. ✅ Done.** Program browser, detail, enrolment, session
+view, age gating enforced. Taken ahead of Phase 2, on hand-authored seeds.
+_Done when: a U15 profile cannot surface a loaded lift by any route through the
+UI._ — verified in a browser and locked in by tests covering all three layers
+the gate is applied at.
 
 **5 — Conditioning blocks.** Running sessions through the same hierarchy;
 distance/time rendering.

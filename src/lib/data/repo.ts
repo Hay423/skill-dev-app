@@ -12,6 +12,7 @@ import type {
 	PositionProfile,
 	ProgramEnrolment,
 	ProgramPlan,
+	ProgramSessionLog,
 	RepLog,
 	Session,
 	SkillCategory,
@@ -70,16 +71,47 @@ export interface Repo {
 		movement_pattern?: MovementPattern;
 		equipment_access?: EquipmentAccess[];
 	}): Promise<Exercise[]>;
+	/**
+	 * The name a player has set, for the affirmation and any other
+	 * personalisation — a thin wrapper over `getProfile` so a caller that only
+	 * needs the name is not tempted to reach past the repo for it.
+	 */
+	getDisplayName(): Promise<string | null>;
 	listPrograms(filter?: {
 		discipline?: TrainingProgram['discipline'];
 		phase?: TrainingProgram['phase'];
 	}): Promise<TrainingProgram[]>;
 	getProgramPlan(program_id: Uuid): Promise<ProgramPlan | undefined>;
+	/** Same as `getProgramPlan`, keyed by the slug the routes use. One call, not two. */
+	getProgramPlanBySlug(slug: string): Promise<ProgramPlan | undefined>;
 
 	// --- program enrolment ---
-	activeEnrolment(): Promise<ProgramEnrolment | undefined>;
+	/**
+	 * Every program currently running — at most one per discipline, so a player
+	 * can hold a strength block and a running block at the same time.
+	 */
+	activeEnrolments(): Promise<ProgramEnrolment[]>;
+	/** The active enrolment for one discipline, if there is one. */
+	activeEnrolment(
+		discipline?: TrainingProgram['discipline']
+	): Promise<ProgramEnrolment | undefined>;
+	/** Starting a program ends the one already running *in the same discipline*, and only that one. */
 	enrol(program_id: Uuid): Promise<ProgramEnrolment>;
-	advanceWeek(enrolment_id: Uuid): Promise<ProgramEnrolment | undefined>;
+	/** Leave a program partway through. Soft delete, so it can still be replayed to the server. */
+	abandonEnrolment(enrolment_id: Uuid): Promise<void>;
+
+	// --- session ticking ---
+	/**
+	 * Upsert one session's progress. The caller passes the whole tick set rather
+	 * than a delta, so two taps in quick succession cannot interleave into a
+	 * half-applied state.
+	 */
+	logSessionProgress(input: SessionProgressInput): Promise<ProgramSessionLog>;
+	listSessionLogs(filter?: {
+		from?: IsoDate;
+		to?: IsoDate;
+		enrolment_id?: Uuid;
+	}): Promise<ProgramSessionLog[]>;
 }
 
 export interface NewRepLog {
@@ -118,6 +150,16 @@ export interface DrillInput {
 	target_reps: number | null;
 	position_tags?: Position[];
 	equipment_required?: EquipmentAccess[];
+}
+
+/** Input to `logSessionProgress`. */
+export interface SessionProgressInput {
+	enrolment_id: Uuid;
+	program_session_id: Uuid;
+	/** The day the session was scheduled for, not necessarily today — late ticks are allowed. */
+	local_date: IsoDate;
+	completed_item_ids: Uuid[];
+	completed: boolean;
 }
 
 /** Input to `saveProfile`. A full replace of editable fields, not a patch. */

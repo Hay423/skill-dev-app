@@ -109,3 +109,25 @@ describe('accuracyTrend', () => {
 		expect(accuracyTrend([log('2026-08-15', 10, 6)], 28, '2026-08-17')).toBeNull();
 	});
 });
+
+describe('currentStreak with program sessions', () => {
+	it('counts a ticked-off program session as a training day', () => {
+		// The player logged reps on Monday and did a prescribed gym session on
+		// Tuesday. That is two consecutive days of training, not one.
+		const logs = [log('2026-09-14', 5, 3)];
+		expect(currentStreak(logs, '2026-09-15')).toBe(1);
+		expect(currentStreak(logs, '2026-09-15', ['2026-09-15'])).toBe(2);
+	});
+
+	it('holds a streak together across a gap that program sessions fill', () => {
+		const logs = [log('2026-09-14', 5, 3), log('2026-09-16', 5, 3)];
+		// Without the session day, Tuesday breaks the run.
+		expect(currentStreak(logs, '2026-09-16')).toBe(1);
+		expect(currentStreak(logs, '2026-09-16', ['2026-09-15'])).toBe(3);
+	});
+
+	it('works with no rep logs at all', () => {
+		expect(currentStreak([], '2026-09-15', ['2026-09-15', '2026-09-14'])).toBe(2);
+		expect(currentStreak([], '2026-09-15', [])).toBe(0);
+	});
+});

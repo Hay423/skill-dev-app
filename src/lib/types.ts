@@ -215,20 +215,25 @@ export const PHYSICAL_QUALITY_LABELS: Record<PhysicalQuality, string> = {
 };
 
 /**
- * Age bands that gate resistance-training content. U12–U14 gets no external
- * load, U16 gets light technique-led load, U18+ gets full programs. This
- * gating lives in the recommendation layer, not the UI — see
- * plans/player-profile.md "Duty of care".
+ * Age bands, in ascending order — the order is load-bearing: the
+ * recommendation layer gates content by comparing indexes into this array, so
+ * bands must never be reordered, only appended to or renamed alongside a
+ * migration.
+ *
+ * These bands gate resistance-training content. U11–U15 are shown no strength
+ * programs at all, U17 gets light technique-led load, seniors get full
+ * periodised programs. That gating lives in the recommendation layer, not the
+ * UI — see plans/player-profile.md "Duty of care".
  */
-export const AGE_GROUPS = ['u12', 'u14', 'u16', 'u18', 'senior', 'masters'] as const;
+export const AGE_GROUPS = ['u11', 'u13', 'u15', 'u17', 'senior', 'masters'] as const;
 export type AgeGroup = (typeof AGE_GROUPS)[number];
 
 export const AGE_GROUP_LABELS: Record<AgeGroup, string> = {
-	u12: 'Under 12',
-	u14: 'Under 14',
-	u16: 'Under 16',
-	u18: 'Under 18',
-	senior: 'Senior',
+	u11: 'Under 11',
+	u13: 'Under 13',
+	u15: 'Under 15',
+	u17: 'Under 17',
+	senior: 'Seniors',
 	masters: 'Masters'
 };
 
@@ -329,7 +334,7 @@ export interface PlayerProfile extends Owned, SyncMeta {
 	schema_version: number;
 }
 
-export const PLAYER_PROFILE_SCHEMA_VERSION = 2;
+export const PLAYER_PROFILE_SCHEMA_VERSION = 3;
 
 /** The constant singleton id `PlayerProfile` rows are keyed by until auth lands. */
 export const SINGLETON_PROFILE_ID = 'me';
@@ -374,6 +379,18 @@ export interface Exercise {
 	min_age_group: AgeGroup;
 	contraindicated_regions: BodyRegion[];
 	coaching_points: string[];
+	/**
+	 * What this exercise looks like prescribed as an optional extra, when the
+	 * per-pattern default would be wrong — a plank is not "3 × 10". Optional:
+	 * most exercises take the default for their movement pattern. See
+	 * `ACCESSORY_DOSE` in `domain/exercise-fit.ts`.
+	 */
+	accessory_dose?: {
+		sets: number;
+		reps: string;
+		rpe?: number | null;
+		rest_seconds?: number | null;
+	};
 	/** Shown in place of this exercise when an injury flag excludes it. */
 	regression_slug: string | null;
 	progression_slug: string | null;
@@ -447,14 +464,52 @@ export interface ProgramPlan {
 	items: ProgramItem[];
 }
 
-/** Which program the player is currently working through. */
+/**
+ * Which program the player is currently working through.
+ *
+ * There is no stored `current_week`. A program week is a real calendar week:
+ * week 1 is the week the player enrolled, and every Monday moves the block on
+ * whether or not the previous week's sessions were done. A stored counter and
+ * the calendar would disagree the first time somebody missed a week, and the
+ * calendar is the one the player is actually living in — see
+ * `programWeekOn` in `domain/schedule.ts`.
+ *
+ * `started_on` is the local calendar day of enrolment, denormalised from
+ * `started_at` for the same reason `RepLog.local_date` is: week arithmetic must
+ * happen in the player's own calendar, not in UTC.
+ */
 export interface ProgramEnrolment extends Owned, SyncMeta {
 	id: Uuid;
 	program_id: Uuid;
 	started_at: IsoDateTime;
-	current_week: number;
+	started_on: IsoDate;
+	completed_at: IsoDateTime | null;
+}
+
+/**
+ * One program session's progress: which exercises have been ticked off, and
+ * whether the session as a whole is done.
+ *
+ * Keyed by enrolment as well as session so that re-enrolling in a program later
+ * starts from a clean slate rather than inheriting last time's ticks.
+ *
+ * Ticked items are an array on this row rather than a table of their own. An
+ * item tick has no life of its own — it is never queried except through its
+ * session, and it disappears with it — so a second table would buy nothing but
+ * another thing to keep in sync. The array maps onto a Postgres `uuid[]` when
+ * sync lands.
+ */
+export interface ProgramSessionLog extends Owned, SyncMeta {
+	id: Uuid;
+	enrolment_id: Uuid;
+	program_session_id: Uuid;
+	/** The local day this session was scheduled for, so streaks can read it by index. */
+	local_date: IsoDate;
+	completed_item_ids: Uuid[];
+	/** Null while the session is part-done. */
 	completed_at: IsoDateTime | null;
 }
 
 /** Anything the sync layer pushes. Drills are excluded — they are read-only. */
-export type SyncableTable = 'sessions' | 'rep_logs' | 'player_profile' | 'program_enrolments';
+export type SyncableTable =
+	'sessions' | 'rep_logs' | 'player_profile' | 'program_enrolments' | 'program_session_logs';

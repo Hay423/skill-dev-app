@@ -5,6 +5,7 @@
 		{ href: '/', label: 'Today', icon: '◎' },
 		{ href: '/drills', label: 'Drills', icon: '▦' },
 		{ href: '/log', label: 'Log', icon: '＋' },
+		{ href: '/train', label: 'Train', icon: '⚡' },
 		{ href: '/progress', label: 'Progress', icon: '📈' },
 		{ href: '/profile', label: 'Profile', icon: '☺' }
 	];
@@ -23,7 +24,7 @@
 			<li class="flex-1">
 				<a
 					href={link.href}
-					class="tap-target flex flex-col items-center gap-0.5 py-2 text-xs transition-colors {isActive(
+					class="tap-target flex flex-col items-center gap-0.5 px-0.5 py-2 text-[11px] transition-colors {isActive(
 						link.href
 					)
 						? 'text-primary-500'
