@@ -1,18 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { BOTTOM_NAV_HREFS, NAV_LINKS, isNavActive } from '$lib/nav';
 
-	const links = [
-		{ href: '/', label: 'Today', icon: '◎' },
-		{ href: '/drills', label: 'Drills', icon: '▦' },
-		{ href: '/log', label: 'Log', icon: '＋' },
-		{ href: '/train', label: 'Train', icon: '⚡' },
-		{ href: '/progress', label: 'Progress', icon: '📈' },
-		{ href: '/profile', label: 'Profile', icon: '☺' }
-	];
-
-	function isActive(href: string): boolean {
-		return href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
-	}
+	// The four links every player needs one tap away. Drills and Profile live in
+	// the burger menu instead — see `nav.ts` for why.
+	const links = NAV_LINKS.filter((link) => BOTTOM_NAV_HREFS.includes(link.href));
 </script>
 
 <nav
@@ -24,12 +16,13 @@
 			<li class="flex-1">
 				<a
 					href={link.href}
-					class="tap-target flex flex-col items-center gap-0.5 px-0.5 py-2 text-[11px] transition-colors {isActive(
-						link.href
+					class="tap-target flex flex-col items-center gap-0.5 px-0.5 py-2 text-[11px] transition-colors {isNavActive(
+						link.href,
+						page.url.pathname
 					)
 						? 'text-primary-500'
 						: 'text-surface-600-400'}"
-					aria-current={isActive(link.href) ? 'page' : undefined}
+					aria-current={isNavActive(link.href, page.url.pathname) ? 'page' : undefined}
 				>
 					<span class="text-lg leading-none" aria-hidden="true">{link.icon}</span>
 					{link.label}

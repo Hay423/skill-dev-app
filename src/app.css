@@ -6,7 +6,8 @@
 
 :root {
 	color-scheme: dark;
-	/* Safe-area insets so the bottom nav clears the iOS home indicator. */
+	/* Safe-area insets so the top and bottom bars clear the notch and the iOS home indicator. */
+	--inset-top: env(safe-area-inset-top, 0px);
 	--inset-bottom: env(safe-area-inset-bottom, 0px);
 }
 

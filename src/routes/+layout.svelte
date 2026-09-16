@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import BottomNav from '$lib/components/BottomNav.svelte';
+	import TopBar from '$lib/components/TopBar.svelte';
 	import { repo, seedReferenceData } from '$lib/data';
 
 	let { children } = $props();
@@ -18,7 +19,8 @@
 </script>
 
 <div class="mx-auto flex min-h-full max-w-lg flex-col">
-	<main class="flex-1 px-4 pt-4 pb-24">
+	<TopBar />
+	<main class="flex-1 px-4 pb-24" style="padding-top: calc(3rem + var(--inset-top) + 1rem)">
 		{#await ready}
 			<p class="pt-8 text-center text-sm text-surface-600-400">Loading…</p>
 		{:then}
