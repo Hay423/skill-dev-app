@@ -53,14 +53,16 @@ sequenceDiagram
 ## Connections by Relation
 
 ### calls
+
 - [[positionWeights()]] `EXTRACTED`
 - [[isEligible()]] `EXTRACTED`
 - [[explain()]] `EXTRACTED`
 - [[order()]] `INFERRED`
 
 ### contains
+
 - [[recommend.ts]] `EXTRACTED`
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._

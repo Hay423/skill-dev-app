@@ -1,15 +1,18 @@
-# Graph Report - C:\Users\matth\Code\skill-dev-app  (2026-09-16)
+# Graph Report - C:\Users\matth\Code\skill-dev-app (2026-09-16)
 
 ## Corpus Check
+
 - 40 files · ~24,903 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
+
 - 239 nodes · 250 edges · 39 communities detected
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
+
 - [[_COMMUNITY_Community 0|Community 0]]
 - [[_COMMUNITY_Community 1|Community 1]]
 - [[_COMMUNITY_Community 2|Community 2]]
@@ -51,6 +54,7 @@
 - [[_COMMUNITY_Community 38|Community 38]]
 
 ## God Nodes (most connected - your core abstractions)
+
 1. `LocalRepo` - 27 edges
 2. `nowIso()` - 8 edges
 3. `positionWeights()` - 6 edges
@@ -63,18 +67,20 @@
 10. `seedReferenceData()` - 3 edges
 
 ## Toxic Hotspots (high risk + high activity)
+
 1. `LocalRepo` - Risk Score: 80% (CLASS)
 
 ## Surprising Connections (you probably didn't know these)
-- `order()` --calls--> `recommendDrills()`  [INFERRED]
+
+- `order()` --calls--> `recommendDrills()` [INFERRED]
   C:\Users\matth\Code\skill-dev-app\src\lib\domain\recommend.test.ts → C:\Users\matth\Code\skill-dev-app\src\lib\domain\recommend.ts
-- `dailySeries()` --calls--> `addDays()`  [INFERRED]
+- `dailySeries()` --calls--> `addDays()` [INFERRED]
   C:\Users\matth\Code\skill-dev-app\src\lib\domain\stats.ts → C:\Users\matth\Code\skill-dev-app\src\lib\util\time.ts
-- `currentStreak()` --calls--> `daysBetween()`  [INFERRED]
+- `currentStreak()` --calls--> `daysBetween()` [INFERRED]
   C:\Users\matth\Code\skill-dev-app\src\lib\domain\stats.ts → C:\Users\matth\Code\skill-dev-app\src\lib\util\time.ts
-- `currentStreak()` --calls--> `addDays()`  [INFERRED]
+- `currentStreak()` --calls--> `addDays()` [INFERRED]
   C:\Users\matth\Code\skill-dev-app\src\lib\domain\stats.ts → C:\Users\matth\Code\skill-dev-app\src\lib\util\time.ts
-- `accuracyTrend()` --calls--> `addDays()`  [INFERRED]
+- `accuracyTrend()` --calls--> `addDays()` [INFERRED]
   C:\Users\matth\Code\skill-dev-app\src\lib\domain\stats.ts → C:\Users\matth\Code\skill-dev-app\src\lib\util\time.ts
 
 ## Communities
@@ -160,9 +166,10 @@ Cohesion: 0.67
 Nodes (2): { db }, { seedPositions }
 
 ### Community 16 - "Community 16"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 0.67
-Nodes (0): 
+Nodes (0):
 
 ### Community 17 - "Community 17"
 
@@ -180,14 +187,16 @@ Cohesion: 0.67
 Nodes (2): available, DIFFICULTY_LABELS
 
 ### Community 20 - "Community 20"
+
 _Handles application settings, deployment parameters, and environment-specific configurations._
 Cohesion: 1.0
 Nodes (1): config
 
 ### Community 21 - "Community 21"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 22 - "Community 22"
 
@@ -200,9 +209,10 @@ Cohesion: 1.0
 Nodes (1): SEED_POSITIONS
 
 ### Community 24 - "Community 24"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 25 - "Community 25"
 
@@ -210,71 +220,85 @@ Cohesion: 1.0
 Nodes (1): evening
 
 ### Community 26 - "Community 26"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 27 - "Community 27"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 28 - "Community 28"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 29 - "Community 29"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 30 - "Community 30"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 31 - "Community 31"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 32 - "Community 32"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 33 - "Community 33"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 34 - "Community 34"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 35 - "Community 35"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 36 - "Community 36"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 37 - "Community 37"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ### Community 38 - "Community 38"
+
 _Unable to determine domain due to missing code entities._
 Cohesion: 1.0
-Nodes (0): 
+Nodes (0):
 
 ## Knowledge Gaps
+
 - **105 isolated node(s):** `config`, `sw`, `CACHE`, `PRECACHE`, `url` (+100 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 20`** (2 nodes): `svelte.config.js`, `config`

@@ -4,6 +4,7 @@
 > This is a token-optimized summary. For deep logic, see GRAPH_REPORT.md.
 
 ## Core Abstractions (God Nodes)
+
 1. `LocalRepo` (27 edges)
 2. `nowIso()` (8 edges)
 3. `positionWeights()` (6 edges)
@@ -16,7 +17,8 @@
 10. `seedReferenceData()` (3 edges)
 
 ## System Layers
-- **L0: Global/Entry**: 
-- **L1: Strategic/Core**: 
-- **L2: Implementation**: 
-- **L3: Utility**: 
+
+- **L0: Global/Entry**:
+- **L1: Strategic/Core**:
+- **L2: Implementation**:
+- **L3: Utility**:

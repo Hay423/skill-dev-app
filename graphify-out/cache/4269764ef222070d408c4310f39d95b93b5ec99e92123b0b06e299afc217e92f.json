@@ -1,1 +1,525 @@
-{"nodes": [{"id": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "label": "drill-import.ts", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L1", "complexity": 1, "loc": 1}, {"id": "drill_import_required_csv_columns", "label": "REQUIRED_CSV_COLUMNS", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L15", "complexity": 1, "loc": 10}, {"id": "drill_import_splitcsvline", "label": "splitCsvLine()", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L27", "complexity": 15, "loc": 27}, {"id": "drill_import_splitlist", "label": "splitList()", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L55", "complexity": 1, "loc": 6}, {"id": "drill_import_parsedrillscsv", "label": "parseDrillsCsv()", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L68", "complexity": 13, "loc": 48}, {"id": "drill_import_parsedrillsjson", "label": "parseDrillsJson()", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L118", "complexity": 16, "loc": 50}, {"id": "drill_import_todrillinput", "label": "toDrillInput()", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L186", "complexity": 21, "loc": 62}], "edges": [{"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "types", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L1", "weight": 1.0}, {"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "repo", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L2", "weight": 1.0}, {"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "drill_import_required_csv_columns", "relation": "contains", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L15", "weight": 1.0}, {"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "drill_import_splitcsvline", "relation": "contains", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L27", "weight": 1.0}, {"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "drill_import_splitlist", "relation": "contains", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L55", "weight": 1.0}, {"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "drill_import_parsedrillscsv", "relation": "contains", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L68", "weight": 1.0}, {"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "drill_import_parsedrillsjson", "relation": "contains", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L118", "weight": 1.0}, {"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts", "target": "drill_import_todrillinput", "relation": "contains", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L186", "weight": 1.0}, {"source": "drill_import_parsedrillscsv", "target": "drill_import_splitcsvline", "relation": "calls", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L72", "weight": 1.0}, {"source": "drill_import_parsedrillscsv", "target": "drill_import_todrillinput", "relation": "calls", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L92", "weight": 1.0}, {"source": "drill_import_parsedrillscsv", "target": "drill_import_splitlist", "relation": "calls", "confidence": "EXTRACTED", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L99", "weight": 1.0}], "raw_calls": [{"caller_nid": "drill_import_splitcsvline", "callee": "push", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L45"}, {"caller_nid": "drill_import_splitcsvline", "callee": "push", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L51"}, {"caller_nid": "drill_import_splitcsvline", "callee": "map", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L52"}, {"caller_nid": "drill_import_splitlist", "callee": "filter", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L56"}, {"caller_nid": "drill_import_splitlist", "callee": "map", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L56"}, {"caller_nid": "drill_import_splitlist", "callee": "split", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L56"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "filter", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L69"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "split", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L69"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "map", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L72"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "filter", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L73"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "join", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L77"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L94"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L95"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L96"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L97"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L98"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L99"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L100"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L101"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L102"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L103"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L104"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "cell", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L105"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "push", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L110"}, {"caller_nid": "drill_import_parsedrillscsv", "callee": "push", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L111"}, {"caller_nid": "drill_import_parsedrillsjson", "callee": "parse", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L121"}, {"caller_nid": "drill_import_parsedrillsjson", "callee": "isArray", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L125"}, {"caller_nid": "drill_import_parsedrillsjson", "callee": "forEach", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L132"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L192"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L192"}, {"caller_nid": "drill_import_todrillinput", "callee": "includes", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L193"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L194"}, {"caller_nid": "drill_import_todrillinput", "callee": "join", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L194"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L196"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L196"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L197"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L197"}, {"caller_nid": "drill_import_todrillinput", "callee": "Number", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L199"}, {"caller_nid": "drill_import_todrillinput", "callee": "isInteger", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L200"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L201"}, {"caller_nid": "drill_import_todrillinput", "callee": "Number", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L204"}, {"caller_nid": "drill_import_todrillinput", "callee": "isFinite", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L205"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L206"}, {"caller_nid": "drill_import_todrillinput", "callee": "Number", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L209"}, {"caller_nid": "drill_import_todrillinput", "callee": "includes", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L210"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L211"}, {"caller_nid": "drill_import_todrillinput", "callee": "toLowerCase", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L214"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L214"}, {"caller_nid": "drill_import_todrillinput", "callee": "includes", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L215"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L216"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L221"}, {"caller_nid": "drill_import_todrillinput", "callee": "Number", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L222"}, {"caller_nid": "drill_import_todrillinput", "callee": "isInteger", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L223"}, {"caller_nid": "drill_import_todrillinput", "callee": "fail", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L224"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L231"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L232"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L234"}, {"caller_nid": "drill_import_todrillinput", "callee": "trim", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts", "source_location": "L235"}]}
+{
+	"nodes": [
+		{
+			"id": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"label": "drill-import.ts",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L1",
+			"complexity": 1,
+			"loc": 1
+		},
+		{
+			"id": "drill_import_required_csv_columns",
+			"label": "REQUIRED_CSV_COLUMNS",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L15",
+			"complexity": 1,
+			"loc": 10
+		},
+		{
+			"id": "drill_import_splitcsvline",
+			"label": "splitCsvLine()",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L27",
+			"complexity": 15,
+			"loc": 27
+		},
+		{
+			"id": "drill_import_splitlist",
+			"label": "splitList()",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L55",
+			"complexity": 1,
+			"loc": 6
+		},
+		{
+			"id": "drill_import_parsedrillscsv",
+			"label": "parseDrillsCsv()",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L68",
+			"complexity": 13,
+			"loc": 48
+		},
+		{
+			"id": "drill_import_parsedrillsjson",
+			"label": "parseDrillsJson()",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L118",
+			"complexity": 16,
+			"loc": 50
+		},
+		{
+			"id": "drill_import_todrillinput",
+			"label": "toDrillInput()",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L186",
+			"complexity": 21,
+			"loc": 62
+		}
+	],
+	"edges": [
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "types",
+			"relation": "imports_from",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L1",
+			"weight": 1.0
+		},
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "repo",
+			"relation": "imports_from",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L2",
+			"weight": 1.0
+		},
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "drill_import_required_csv_columns",
+			"relation": "contains",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L15",
+			"weight": 1.0
+		},
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "drill_import_splitcsvline",
+			"relation": "contains",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L27",
+			"weight": 1.0
+		},
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "drill_import_splitlist",
+			"relation": "contains",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L55",
+			"weight": 1.0
+		},
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "drill_import_parsedrillscsv",
+			"relation": "contains",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L68",
+			"weight": 1.0
+		},
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "drill_import_parsedrillsjson",
+			"relation": "contains",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L118",
+			"weight": 1.0
+		},
+		{
+			"source": "c_users_matth_code_skill_dev_app_src_lib_domain_drill_import_ts",
+			"target": "drill_import_todrillinput",
+			"relation": "contains",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L186",
+			"weight": 1.0
+		},
+		{
+			"source": "drill_import_parsedrillscsv",
+			"target": "drill_import_splitcsvline",
+			"relation": "calls",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L72",
+			"weight": 1.0
+		},
+		{
+			"source": "drill_import_parsedrillscsv",
+			"target": "drill_import_todrillinput",
+			"relation": "calls",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L92",
+			"weight": 1.0
+		},
+		{
+			"source": "drill_import_parsedrillscsv",
+			"target": "drill_import_splitlist",
+			"relation": "calls",
+			"confidence": "EXTRACTED",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L99",
+			"weight": 1.0
+		}
+	],
+	"raw_calls": [
+		{
+			"caller_nid": "drill_import_splitcsvline",
+			"callee": "push",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L45"
+		},
+		{
+			"caller_nid": "drill_import_splitcsvline",
+			"callee": "push",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L51"
+		},
+		{
+			"caller_nid": "drill_import_splitcsvline",
+			"callee": "map",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L52"
+		},
+		{
+			"caller_nid": "drill_import_splitlist",
+			"callee": "filter",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L56"
+		},
+		{
+			"caller_nid": "drill_import_splitlist",
+			"callee": "map",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L56"
+		},
+		{
+			"caller_nid": "drill_import_splitlist",
+			"callee": "split",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L56"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "filter",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L69"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "split",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L69"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "map",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L72"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "filter",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L73"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "join",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L77"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L94"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L95"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L96"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L97"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L98"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L99"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L100"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L101"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L102"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L103"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L104"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "cell",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L105"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "push",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L110"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillscsv",
+			"callee": "push",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L111"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillsjson",
+			"callee": "parse",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L121"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillsjson",
+			"callee": "isArray",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L125"
+		},
+		{
+			"caller_nid": "drill_import_parsedrillsjson",
+			"callee": "forEach",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L132"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L192"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L192"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "includes",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L193"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L194"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "join",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L194"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L196"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L196"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L197"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L197"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "Number",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L199"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "isInteger",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L200"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L201"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "Number",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L204"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "isFinite",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L205"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L206"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "Number",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L209"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "includes",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L210"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L211"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "toLowerCase",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L214"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L214"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "includes",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L215"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L216"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L221"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "Number",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L222"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "isInteger",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L223"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "fail",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L224"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L231"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L232"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L234"
+		},
+		{
+			"caller_nid": "drill_import_todrillinput",
+			"callee": "trim",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\lib\\domain\\drill-import.ts",
+			"source_location": "L235"
+		}
+	]
+}

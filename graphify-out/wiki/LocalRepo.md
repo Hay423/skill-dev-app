@@ -5,9 +5,11 @@
 ## Connections by Relation
 
 ### contains
+
 - [[local-repo.ts]] `EXTRACTED`
 
 ### method
+
 - [[.logReps()]] `EXTRACTED`
 - [[.createDrill()]] `EXTRACTED`
 - [[.startSession()]] `EXTRACTED`
@@ -31,4 +33,4 @@
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._

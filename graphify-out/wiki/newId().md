@@ -62,14 +62,16 @@ sequenceDiagram
 ## Connections by Relation
 
 ### calls
+
 - [[.logReps()]] `INFERRED`
 - [[.createDrill()]] `INFERRED`
 - [[.startSession()]] `INFERRED`
 - [[.enrol()]] `INFERRED`
 
 ### contains
+
 - [[time.ts]] `EXTRACTED`
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._

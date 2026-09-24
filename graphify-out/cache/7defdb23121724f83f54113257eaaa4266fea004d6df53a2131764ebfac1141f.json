@@ -1,1 +1,16 @@
-{"nodes": [{"id": "c_users_matth_code_skill_dev_app_src_routes_progress_page_svelte", "label": "+page.svelte", "file_type": "code", "type": "FUNCTION", "source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\routes\\progress\\+page.svelte", "source_location": "L1", "complexity": 1, "loc": 1}], "edges": [], "raw_calls": []}
+{
+	"nodes": [
+		{
+			"id": "c_users_matth_code_skill_dev_app_src_routes_progress_page_svelte",
+			"label": "+page.svelte",
+			"file_type": "code",
+			"type": "FUNCTION",
+			"source_file": "C:\\Users\\matth\\Code\\skill-dev-app\\src\\routes\\progress\\+page.svelte",
+			"source_location": "L1",
+			"complexity": 1,
+			"loc": 1
+		}
+	],
+	"edges": [],
+	"raw_calls": []
+}

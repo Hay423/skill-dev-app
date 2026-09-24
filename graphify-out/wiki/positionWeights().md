@@ -57,6 +57,7 @@ sequenceDiagram
 ## Connections by Relation
 
 ### calls
+
 - [[recommendDrills()]] `EXTRACTED`
 - [[zeroSkills()]] `EXTRACTED`
 - [[zeroPhysical()]] `EXTRACTED`
@@ -64,8 +65,9 @@ sequenceDiagram
 - [[priorityCategories()]] `EXTRACTED`
 
 ### contains
+
 - [[recommend.ts]] `EXTRACTED`
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._

@@ -27,13 +27,15 @@ sequenceDiagram
 ## Connections by Relation
 
 ### calls
+
 - [[splitCsvLine()]] `EXTRACTED`
 - [[toDrillInput()]] `EXTRACTED`
 - [[splitList()]] `EXTRACTED`
 
 ### contains
+
 - [[drill-import.ts]] `EXTRACTED`
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._

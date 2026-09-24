@@ -59,14 +59,16 @@ sequenceDiagram
 ## Connections by Relation
 
 ### calls
+
 - [[localDate()]] `EXTRACTED`
 - [[currentStreak()]] `INFERRED`
 - [[accuracyTrend()]] `INFERRED`
 - [[dailySeries()]] `INFERRED`
 
 ### contains
+
 - [[time.ts]] `EXTRACTED`
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._

@@ -63,13 +63,15 @@ sequenceDiagram
 ## Connections by Relation
 
 ### calls
+
 - [[.logReps()]] `INFERRED`
 - [[addDays()]] `EXTRACTED`
 - [[.startSession()]] `INFERRED`
 
 ### contains
+
 - [[time.ts]] `EXTRACTED`
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._

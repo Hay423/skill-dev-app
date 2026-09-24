@@ -29,7 +29,7 @@
 - [result](file:///C:/Users/matth/Code/skill-dev-app/src/lib/domain/recommend.test.ts#L210) (1 connections)
 - [seq](file:///C:/Users/matth/Code/skill-dev-app/src/lib/domain/recommend.test.ts#L48) (1 connections)
 - [{ skills }](file:///C:/Users/matth/Code/skill-dev-app/src/lib/domain/recommend.test.ts#L86) (1 connections)
-- *... and 2 more nodes in this community*
+- _... and 2 more nodes in this community_
 
 ## Relationships
 
@@ -47,4 +47,4 @@
 
 ---
 
-*Part of the graphify knowledge wiki. See [[index]] to navigate.*
+_Part of the graphify knowledge wiki. See [[index]] to navigate._
