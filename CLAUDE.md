@@ -47,10 +47,12 @@ npm run format    # prettier --write
 
 ```
 src/lib/types.ts          Domain model — the source of truth for shapes
+src/lib/config.ts         Env-driven config: which backend, which credentials
 src/lib/data/repo.ts      Repo interface: the storage seam
 src/lib/data/local-repo.ts  Dexie implementation
 src/lib/data/db.ts        Dexie schema + indexes
-src/lib/data/index.ts     Exports the live `repo` singleton + drill seeding
+src/lib/data/index.ts     Picks the backend from config, exports `repo` + seeding
+src/lib/data/user.ts      Who owns the rows being written (`currentUserId()`)
 src/lib/data/seed/        Bundled drill library (reference data)
 src/lib/domain/           Pure functions — stats, streaks. Fully unit tested.
 src/lib/util/time.ts      Local-calendar date helpers
@@ -62,7 +64,26 @@ src/routes/               Pages
 
 **Never import `dexie` or `db` outside `src/lib/data/`.** All reads and writes go
 through the `Repo` interface. The whole point is that swapping in a
-Supabase-backed repo later touches one line in `src/lib/data/index.ts`.
+Supabase-backed repo later adds one case to `createRepo()` in
+`src/lib/data/index.ts` and changes nothing above the data layer.
+
+**Which backend runs is configuration, not code.** `PUBLIC_DATA_BACKEND` selects
+it; `createRepo()` reads it from `src/lib/config.ts`. Never hardcode a backend
+choice, a URL or a key at a call site. An unimplemented or misconfigured backend
+throws at boot rather than falling back to local storage — a build that thinks
+it is syncing and is not looks healthy right up until the data is gone.
+
+**No secrets in this repo, and none in the bundle.** This is a static SPA with no
+server: every `PUBLIC_*` variable is compiled into the JavaScript and is readable
+by anyone who loads the page. A Supabase **anon key** belongs there (row-level
+security on `user_id` is what protects the data). A **service-role key**,
+database password, or any credential that bypasses RLS must never enter this
+repo, its `.env`, or its build — it belongs to a server the app calls. `.env` is
+gitignored; `.env.example` documents the variables with no real values.
+
+**Every user-owned row gets an owner at write time.** Writes stamp
+`currentUserId()` from `src/lib/data/user.ts`, never a literal and never null.
+See Supabase-readiness below.
 
 **Keep logic out of components.** Anything computable — accuracy, streaks,
 rollups — belongs in `src/lib/domain/` as a pure function with a test. Components
@@ -81,10 +102,26 @@ The app is local-only today, but the schema is already shaped for sync:
   `synced_at`, `_dirty`, `_deleted`.
 - `_dirty`/`_deleted` are `0 | 1`, not booleans — IndexedDB cannot index booleans.
 - Deletes are **soft**, so they can be replayed to the server.
-- `user_id` is null while anonymous; sign-in stamps the real auth uid.
+- `user_id` is **always populated, never null**. While anonymous it carries
+  `LOCAL_USER_ID` (a fixed UUID in `src/lib/types.ts`); `setCurrentUserId()`
+  points later writes at the real auth uid, and the sync layer rewrites the
+  stored placeholder rows once at first sign-in.
 
-When adding a user-owned table: extend `Owned` and `SyncMeta`, index `_dirty`,
-and add the methods to `Repo` before implementing them.
+`user_id` is non-null for a concrete reason, not tidiness: **IndexedDB rejects
+`null` as a key**, so a nullable owner is unindexable — rows carrying it are
+simply absent from the index. A real value makes "this user's rows" an indexed
+lookup today, makes the Postgres column `uuid not null`, makes the RLS policy a
+one-liner, and turns the sign-in backfill into a rewrite of one known value
+instead of a full-table hunt for missing ones.
+
+When adding a user-owned table: extend `Owned` and `SyncMeta`, index `_dirty`
+**and `user_id`**, add the table to `OWNED_TABLES` in `db.ts` and to
+`SyncableTable` in `types.ts`, stamp `currentUserId()` on insert, and add the
+methods to `Repo` before implementing them.
+
+Reference content (drills, positions, exercises, programs) is deliberately
+**not** owned: it ships with the app, is identical for everyone, and is never
+pushed. Giving it a `user_id` would imply a per-user copy that does not exist.
 
 ## Conventions
 

@@ -3,7 +3,13 @@ import { SEED_EXERCISES } from '$lib/data/seed/exercises';
 import { SEED_POSITIONS } from '$lib/data/seed/positions';
 import { SEED_PROGRAM_PLANS } from '$lib/data/seed/programs';
 import { scaledLoad } from './program-plan';
-import { AGE_GROUPS, type AgeGroup, type PlayerProfile, type TrainingProgram } from '$lib/types';
+import {
+	AGE_GROUPS,
+	LOCAL_USER_ID,
+	type AgeGroup,
+	type PlayerProfile,
+	type TrainingProgram
+} from '$lib/types';
 import {
 	describeExclusion,
 	expandEquipmentAccess,
@@ -18,7 +24,7 @@ import {
 function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 	return {
 		id: 'me',
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		display_name: null,
 		primary_position: 'utility',
 		secondary_position: null,

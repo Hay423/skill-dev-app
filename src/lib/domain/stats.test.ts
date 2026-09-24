@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RepLog, SkillCategory } from '$lib/types';
+import { LOCAL_USER_ID, type RepLog, type SkillCategory } from '$lib/types';
 import { accuracyTrend, currentStreak, dailySeries, totals, totalsByCategory } from './stats';
 
 let seq = 0;
@@ -13,7 +13,7 @@ function log(
 	seq += 1;
 	return {
 		id: `log-${seq}`,
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		session_id: null,
 		drill_id: null,
 		category,

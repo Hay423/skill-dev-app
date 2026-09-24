@@ -60,12 +60,34 @@ export interface SyncMeta {
 }
 
 /**
- * Owner of a user-generated row. Null while the app is anonymous and
- * local-only; the sync layer stamps the real auth uid on first sign-in.
+ * Owner of a user-generated row.
+ *
+ * Always populated, never null. While the app is anonymous it carries
+ * `LOCAL_USER_ID`; signing in rewrites those rows to the real auth uid. A
+ * nullable owner would cost more than it saves: IndexedDB cannot index `null`,
+ * so a nullable `user_id` is unindexable in practice, and every query and
+ * migration downstream would have to carry a "no owner yet" branch that only
+ * ever matters before sign-in.
+ *
+ * Maps onto a Postgres `uuid not null` column, which is also what makes the
+ * row-level-security policy a one-liner.
  */
 export interface Owned {
-	user_id: Uuid | null;
+	user_id: Uuid;
 }
+
+/**
+ * The owner stamped on rows created before sign-in.
+ *
+ * A fixed, valid v4 UUID rather than a sentinel like `'local'`, so it is the
+ * same shape as a real Supabase auth uid: the column stays `uuid`, and the
+ * backfill at first sign-in is an indexed rewrite of one known value rather
+ * than a full-table scan for absent ones.
+ *
+ * Never reuse this value server-side — it is a local placeholder, not an
+ * account. See `src/lib/data/user.ts`.
+ */
+export const LOCAL_USER_ID: Uuid = '00000000-0000-4000-8000-000000000001';
 
 /**
  * A drill from the library.

@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_POSITIONS } from '$lib/data/seed/positions';
 import { SEED_PROGRAM_PLANS } from '$lib/data/seed/programs';
-import { AGE_GROUPS, type AgeGroup, type Drill, type PlayerProfile } from '$lib/types';
+import {
+	AGE_GROUPS,
+	LOCAL_USER_ID,
+	type AgeGroup,
+	type Drill,
+	type PlayerProfile
+} from '$lib/types';
 import {
 	describeLoadPolicy,
 	describeProgramCaution,
@@ -17,7 +23,7 @@ import { recommendDrills, recommendPrograms, type RecommendationContext } from '
 function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 	return {
 		id: 'me',
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		display_name: null,
 		primary_position: 'inside_midfielder',
 		secondary_position: null,

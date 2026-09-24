@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_EXERCISES } from '$lib/data/seed/exercises';
 import { SEED_POSITIONS } from '$lib/data/seed/positions';
-import type { Exercise, PlayerProfile, ProgramItem, TrainingProgram } from '$lib/types';
+import {
+	LOCAL_USER_ID,
+	type Exercise,
+	type PlayerProfile,
+	type ProgramItem,
+	type TrainingProgram
+} from '$lib/types';
 import type { RecommendationContext } from './recommend';
 import {
 	exerciseFit,
@@ -14,7 +20,7 @@ import {
 function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 	return {
 		id: 'me',
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		display_name: null,
 		primary_position: 'ruck',
 		secondary_position: null,

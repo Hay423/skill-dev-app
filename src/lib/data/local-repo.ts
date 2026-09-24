@@ -18,6 +18,7 @@ import { localDate, newId, nowIso } from '$lib/util/time';
 import { db } from './db';
 import { programWeekOn } from '$lib/domain/schedule';
 import type { DrillInput, NewRepLog, ProfileInput, Repo, SessionProgressInput } from './repo';
+import { currentUserId } from './user';
 
 /** Lowercase, hyphenated, alphanumeric-only — matches the seed library's slugs. */
 function slugify(text: string): string {
@@ -132,7 +133,7 @@ export class LocalRepo implements Repo {
 		const at = nowIso();
 		const session: Session = {
 			id: newId(),
-			user_id: null,
+			user_id: currentUserId(),
 			started_at: at,
 			completed_at: null,
 			drill_ids: input.drill_ids,
@@ -179,7 +180,7 @@ export class LocalRepo implements Repo {
 		const at = input.recorded_at ?? nowIso();
 		const log: RepLog = {
 			id: newId(),
-			user_id: null,
+			user_id: currentUserId(),
 			session_id: input.session_id ?? null,
 			drill_id: input.drill_id ?? null,
 			category: input.category,
@@ -238,7 +239,7 @@ export class LocalRepo implements Repo {
 		const at = nowIso();
 		const profile: PlayerProfile = {
 			id: SINGLETON_PROFILE_ID,
-			user_id: existing?.user_id ?? null,
+			user_id: existing?.user_id ?? currentUserId(),
 			display_name: input.display_name ?? null,
 			primary_position: input.primary_position,
 			secondary_position: input.secondary_position ?? null,
@@ -372,7 +373,7 @@ export class LocalRepo implements Repo {
 		const at = nowIso();
 		const enrolment: ProgramEnrolment = {
 			id: newId(),
-			user_id: null,
+			user_id: currentUserId(),
 			program_id,
 			started_at: at,
 			started_on: localDate(at),
@@ -406,7 +407,7 @@ export class LocalRepo implements Repo {
 		const at = nowIso();
 		const log: ProgramSessionLog = {
 			id: existing?.id ?? newId(),
-			user_id: existing?.user_id ?? null,
+			user_id: existing?.user_id ?? currentUserId(),
 			enrolment_id: input.enrolment_id,
 			program_session_id: input.program_session_id,
 			local_date: input.local_date,

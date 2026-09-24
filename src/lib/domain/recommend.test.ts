@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_POSITIONS } from '$lib/data/seed/positions';
 import {
+	LOCAL_USER_ID,
 	POSITIONS,
 	type Difficulty,
 	type Drill,
@@ -21,7 +22,7 @@ import {
 function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 	return {
 		id: 'me',
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		display_name: null,
 		primary_position: 'utility',
 		secondary_position: null,

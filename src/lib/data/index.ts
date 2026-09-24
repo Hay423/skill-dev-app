@@ -1,3 +1,4 @@
+import { config } from '$lib/config';
 import { db } from './db';
 import { LocalRepo } from './local-repo';
 import type { Repo } from './repo';
@@ -7,13 +8,34 @@ import { SEED_POSITIONS } from './seed/positions';
 import { SEED_PROGRAM_PLANS } from './seed/programs';
 
 /**
- * The app's single storage entry point.
+ * Build the repository the environment asks for.
  *
- * When Supabase lands, this is the only line that changes: point `repo` at a
- * sync-backed implementation of `Repo`. Everything above the data layer imports
+ * Which backend the app runs against is configuration, not code: it comes from
+ * `PUBLIC_DATA_BACKEND` (see `src/lib/config.ts` and `.env.example`), so
+ * pointing a build at Supabase is an env change and a rebuild, not an edit
+ * here. Adding a backend means adding a case and an implementation of `Repo` —
+ * nothing above the data layer moves either way.
+ */
+function createRepo(): Repo {
+	switch (config.backend) {
+		case 'local':
+			return new LocalRepo();
+		case 'supabase':
+			// Deliberately loud rather than silently falling back to local
+			// storage: a build configured for sync that quietly wrote to
+			// IndexedDB would look fine until the data failed to appear
+			// anywhere else. See plans/ROADMAP.md item 4.
+			throw new Error(
+				'PUBLIC_DATA_BACKEND=supabase is not implemented yet — SyncRepo has not landed. Use `local`.'
+			);
+	}
+}
+
+/**
+ * The app's single storage entry point. Everything above the data layer imports
  * from here, never from `local-repo` or `db`.
  */
-export const repo: Repo = new LocalRepo();
+export const repo: Repo = createRepo();
 
 /**
  * Add any bundled seed drills not already present in IndexedDB. Safe to call

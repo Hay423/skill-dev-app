@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Drill, RepLog, Session } from '$lib/types';
+import { LOCAL_USER_ID, type Drill, type RepLog, type Session } from '$lib/types';
 
 /**
  * Simulates a real v1 user upgrading to v2: a database is opened with only
@@ -29,7 +29,7 @@ describe('v1 -> v2 Dexie migration', () => {
 
 		const session: Session = {
 			id: 'session-1',
-			user_id: null,
+			user_id: LOCAL_USER_ID,
 			started_at: '2026-08-01T10:00:00.000Z',
 			completed_at: null,
 			drill_ids: ['drill-1'],
@@ -43,7 +43,7 @@ describe('v1 -> v2 Dexie migration', () => {
 		};
 		const repLog: RepLog = {
 			id: 'rep-1',
-			user_id: null,
+			user_id: LOCAL_USER_ID,
 			session_id: 'session-1',
 			drill_id: 'drill-1',
 			category: 'kicking',
@@ -184,7 +184,7 @@ describe('v3 -> v4 Dexie migration', () => {
 		const v3 = new V3Db();
 		await v3.table('player_profile').add({
 			id: 'me',
-			user_id: null,
+			user_id: LOCAL_USER_ID,
 			display_name: 'Test player',
 			primary_position: 'ruck',
 			secondary_position: null,
@@ -263,7 +263,7 @@ describe('v4 -> v5 Dexie migration', () => {
 	function v4Profile(age_group: string) {
 		return {
 			id: 'me',
-			user_id: null,
+			user_id: LOCAL_USER_ID,
 			display_name: 'Test player',
 			primary_position: 'small_forward',
 			secondary_position: null,
@@ -376,7 +376,7 @@ describe('v5 -> v6 Dexie migration', () => {
 		const v5 = new V5Db();
 		await v5.table('program_enrolments').add({
 			id: 'enrol-1',
-			user_id: null,
+			user_id: LOCAL_USER_ID,
 			program_id: 'program-1',
 			started_at: startedAt,
 			current_week: 3,
@@ -402,5 +402,168 @@ describe('v5 -> v6 Dexie migration', () => {
 		await expect(v6.program_session_logs.toArray()).resolves.toEqual([]);
 
 		v6.close();
+	});
+});
+
+describe('v6 -> v7 Dexie migration', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	/** The v6 schema, before `user_id` was indexed anywhere. */
+	class V6Db extends Dexie {
+		constructor() {
+			super('skill-dev');
+			this.version(6).stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			});
+		}
+	}
+
+	const at = '2026-09-16T02:00:00.000Z';
+	const meta = {
+		created_at: at,
+		updated_at: at,
+		synced_at: null,
+		_dirty: 1 as const,
+		_deleted: 0 as const
+	};
+
+	it('backfills the placeholder owner onto every owned table', async () => {
+		const v6 = new V6Db();
+		await v6.table('sessions').add({
+			id: 'session-1',
+			user_id: null,
+			started_at: at,
+			completed_at: null,
+			drill_ids: [],
+			local_date: '2026-09-16',
+			notes: null,
+			...meta
+		});
+		await v6.table('rep_logs').add({
+			id: 'rep-1',
+			user_id: null,
+			session_id: null,
+			drill_id: null,
+			category: 'kicking',
+			attempts: 10,
+			successes: 7,
+			distance_m: null,
+			foot: null,
+			recorded_at: at,
+			local_date: '2026-09-16',
+			notes: null,
+			...meta
+		});
+		await v6.table('player_profile').add({
+			id: 'me',
+			user_id: null,
+			display_name: null,
+			primary_position: 'utility',
+			secondary_position: null,
+			age_group: 'senior',
+			date_of_birth: null,
+			experience: 'developing',
+			sessions_per_week: 3,
+			available_days: [],
+			equipment_access: [],
+			schema_version: 3,
+			...meta
+		});
+		await v6.table('program_enrolments').add({
+			id: 'enrol-1',
+			user_id: null,
+			program_id: 'program-1',
+			started_at: at,
+			started_on: '2026-09-16',
+			completed_at: null,
+			...meta
+		});
+		await v6.table('program_session_logs').add({
+			id: 'log-1',
+			user_id: null,
+			enrolment_id: 'enrol-1',
+			program_session_id: 'ps-1',
+			local_date: '2026-09-16',
+			completed_item_ids: [],
+			completed_at: null,
+			...meta
+		});
+		v6.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v7 = new SkillDevDb();
+
+		expect((await v7.sessions.get('session-1'))!.user_id).toBe(LOCAL_USER_ID);
+		expect((await v7.rep_logs.get('rep-1'))!.user_id).toBe(LOCAL_USER_ID);
+		expect((await v7.player_profile.get('me'))!.user_id).toBe(LOCAL_USER_ID);
+		expect((await v7.program_enrolments.get('enrol-1'))!.user_id).toBe(LOCAL_USER_ID);
+		expect((await v7.program_session_logs.get('log-1'))!.user_id).toBe(LOCAL_USER_ID);
+
+		v7.close();
+	});
+
+	it('makes user_id queryable by index, which a null owner never was', async () => {
+		const v6 = new V6Db();
+		await v6.table('rep_logs').add({
+			id: 'rep-1',
+			user_id: null,
+			session_id: null,
+			drill_id: null,
+			category: 'kicking',
+			attempts: 10,
+			successes: 7,
+			distance_m: null,
+			foot: null,
+			recorded_at: at,
+			local_date: '2026-09-16',
+			notes: null,
+			...meta
+		});
+		v6.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v7 = new SkillDevDb();
+
+		const mine = await v7.rep_logs.where('user_id').equals(LOCAL_USER_ID).toArray();
+		expect(mine.map((r) => r.id)).toEqual(['rep-1']);
+
+		v7.close();
+	});
+
+	it('never reassigns a row that already carries a real owner', async () => {
+		const theirs = '11111111-1111-4111-8111-111111111111';
+		const v6 = new V6Db();
+		await v6.table('sessions').add({
+			id: 'session-1',
+			user_id: theirs,
+			started_at: at,
+			completed_at: null,
+			drill_ids: [],
+			local_date: '2026-09-16',
+			notes: null,
+			...meta
+		});
+		v6.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v7 = new SkillDevDb();
+
+		expect((await v7.sessions.get('session-1'))!.user_id).toBe(theirs);
+
+		v7.close();
 	});
 });

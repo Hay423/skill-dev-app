@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type {
-	Drill,
-	IsoDate,
-	PlayerProfile,
-	ProgramEnrolment,
-	ProgramItem,
-	ProgramPlan,
-	ProgramSession,
-	ProgramSessionLog,
-	TrainingProgram,
-	Weekday
+import {
+	LOCAL_USER_ID,
+	type Drill,
+	type IsoDate,
+	type PlayerProfile,
+	type ProgramEnrolment,
+	type ProgramItem,
+	type ProgramPlan,
+	type ProgramSession,
+	type ProgramSessionLog,
+	type TrainingProgram,
+	type Weekday
 } from '$lib/types';
 import {
 	allItemsTicked,
@@ -36,7 +37,7 @@ const SUN: IsoDate = '2026-09-20';
 function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 	return {
 		id: 'me',
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		display_name: null,
 		primary_position: 'utility',
 		secondary_position: null,
@@ -59,7 +60,7 @@ function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 function enrolment(started_on: IsoDate, overrides: Partial<ProgramEnrolment> = {}) {
 	return {
 		id: `enrol-${started_on}-${overrides.program_id ?? 'p'}`,
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		program_id: 'p',
 		started_at: `${started_on}T08:00:00.000Z`,
 		started_on,
@@ -302,7 +303,7 @@ describe('planWeek — progress and rest days', () => {
 	function log(session_id: string, date: IsoDate, completed: boolean): ProgramSessionLog {
 		return {
 			id: `log-${session_id}`,
-			user_id: null,
+			user_id: LOCAL_USER_ID,
 			enrolment_id: 'enrol',
 			program_session_id: session_id,
 			local_date: date,
@@ -381,7 +382,7 @@ describe('planWeek — progress and rest days', () => {
 describe('trainingDatesFromLogs', () => {
 	it('counts only finished sessions towards the streak', () => {
 		const base = {
-			user_id: null,
+			user_id: LOCAL_USER_ID,
 			enrolment_id: 'e',
 			completed_item_ids: [],
 			created_at: '',

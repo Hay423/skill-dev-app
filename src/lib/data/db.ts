@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import { AGE_GROUPS, PLAYER_PROFILE_SCHEMA_VERSION } from '$lib/types';
+import { AGE_GROUPS, LOCAL_USER_ID, PLAYER_PROFILE_SCHEMA_VERSION } from '$lib/types';
 import { localDate } from '$lib/util/time';
 import type {
 	AgeGroup,
@@ -220,8 +220,72 @@ export class SkillDevDb extends Dexie {
 						delete enrolment.current_week;
 					});
 			});
+
+		// v7 indexes `user_id` on every syncable table and backfills the rows
+		// written before there was an owner to stamp.
+		//
+		// `user_id` has been on these rows since v1, but always `null`, which
+		// made it dead weight: IndexedDB rejects `null` as a key, so a row with a
+		// null `user_id` is simply absent from a `user_id` index — the index
+		// would have been empty. Backfilling to `LOCAL_USER_ID` is what makes it
+		// queryable, and it is the migration that would otherwise have had to
+		// happen at first sign-in, under a network, against rows already being
+		// pushed.
+		//
+		// After this, "rows belonging to the current user" is an indexed lookup
+		// in every table, and first sign-in is a rewrite of one known value
+		// rather than a scan for absent ones.
+		//
+		// Reference tables (drills, positions, exercises, programs and the
+		// program subtree) are deliberately untouched: they ship with the app,
+		// are identical for everyone, and are never pushed. Giving them an owner
+		// would imply a per-user copy that does not exist.
+		this.version(7)
+			.stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			})
+			.upgrade(async (tx) => {
+				await Promise.all(
+					OWNED_TABLES.map((table) =>
+						tx
+							.table(table)
+							.toCollection()
+							.modify((row) => {
+								// Only fills a gap. A row that somehow already carries a
+								// real owner (a restored backup, a future re-import) keeps
+								// it — this migration must never reassign someone's data.
+								if (!row.user_id) row.user_id = LOCAL_USER_ID;
+							})
+					)
+				);
+			});
 	}
 }
+
+/**
+ * Tables whose rows carry an owner. Mirrors `SyncableTable` in `$lib/types` —
+ * the same set, because "is owned by a user" and "gets pushed to the server"
+ * are the same property here.
+ */
+const OWNED_TABLES = [
+	'sessions',
+	'rep_logs',
+	'player_profile',
+	'program_enrolments',
+	'program_session_logs'
+] as const;
 
 /** The v4 age bands, mapped onto their v5 replacements. */
 const RENAMED_AGE_GROUPS: Record<string, AgeGroup> = {

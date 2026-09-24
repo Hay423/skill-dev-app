@@ -6,6 +6,8 @@
 - Rep logging: hit/miss tally, foot selection, undo, save
 - Progress: streaks, accuracy, daily volume, per-skill breakdown
 - Local-first storage via Dexie, with a Supabase-ready schema
+- Env-driven backend selection (`PUBLIC_DATA_BACKEND`) and an owner (`user_id`)
+  stamped and indexed on every user-owned row from day one
 - PWA shell: manifest, service worker, offline caching
 
 ## Known gaps
@@ -66,8 +68,19 @@ Only worth doing once the local app is genuinely useful.
 - Postgres schema mirroring `src/lib/types.ts`, row-level security on `user_id`
 - Anonymous auth, upgradeable to email
 - Push `_dirty` rows, pull by `updated_at`, last-write-wins on conflict
-- Backfill `user_id` on existing local rows at first sign-in
-- Implement `SyncRepo` and change the one line in `src/lib/data/index.ts`
+- Implement `SyncRepo` and add the `supabase` case to `createRepo()` in
+  `src/lib/data/index.ts`. The env plumbing is already in place: set
+  `PUBLIC_DATA_BACKEND=supabase` plus the two `PUBLIC_SUPABASE_*` variables (see
+  `.env.example`). Until the case is implemented it throws at boot on purpose.
+- Rewrite `LOCAL_USER_ID` to the real auth uid at first sign-in. This is now a
+  rewrite of one known value across the five owned tables, each indexed on
+  `user_id` — not a hunt for rows that never had an owner. The care needed is in
+  the ordering, not the lookup: rows already `_dirty` and mid-push must not be
+  re-owned underneath an in-flight request.
+- Decide what happens to placeholder-owned rows if a _second_ player ever signs
+  in on the same device. Claiming them for whoever signs in first is the only
+  answer the local data supports; anything better needs the rows to have been
+  distinguishable before sign-in, which they are not.
 
 ## Later ideas
 
