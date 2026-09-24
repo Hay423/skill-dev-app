@@ -9,3 +9,9 @@ dist
 *.log
 .vite
 coverage
+
+# Generated code-analysis output (graph, wiki, cache). Produced by an external
+# graphify run, not by anything in this repo, and regenerating it churns tens of
+# thousands of lines across ~84 files, which buries real diffs. Kept on disk,
+# out of git.
+graphify-out/
