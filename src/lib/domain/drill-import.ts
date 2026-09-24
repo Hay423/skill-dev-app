@@ -151,7 +151,8 @@ export function parseDrillsJson(text: string): DrillImportResult {
 				min_players: asString(e.min_players),
 				duration_minutes: asString(e.duration_minutes),
 				difficulty: asString(e.difficulty),
-				tracks_reps: typeof e.tracks_reps === 'boolean' ? String(e.tracks_reps) : asString(e.tracks_reps),
+				tracks_reps:
+					typeof e.tracks_reps === 'boolean' ? String(e.tracks_reps) : asString(e.tracks_reps),
 				target_reps: e.target_reps == null ? '' : asString(e.target_reps),
 				position_tags: asStringArray(e.position_tags),
 				equipment_required: asStringArray(e.equipment_required)

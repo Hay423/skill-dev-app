@@ -75,8 +75,12 @@
 	</div>
 
 	<section class="mt-6">
-		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">Daily volume</h2>
-		<div class="flex h-24 items-end gap-px rounded-xl border border-surface-200-800 bg-surface-100-900 p-2">
+		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
+			Daily volume
+		</h2>
+		<div
+			class="flex h-24 items-end gap-px rounded-xl border border-surface-200-800 bg-surface-100-900 p-2"
+		>
 			{#each series as point (point.date)}
 				<div
 					class="flex-1 rounded-t {point.attempts > 0 ? 'bg-primary-500' : 'bg-surface-200-800'}"
@@ -88,7 +92,9 @@
 	</section>
 
 	<section class="mt-6">
-		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">By skill</h2>
+		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
+			By skill
+		</h2>
 		<ul class="space-y-2">
 			{#each byCategory as row (row.category)}
 				<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">

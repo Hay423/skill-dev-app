@@ -84,12 +84,10 @@
 </a>
 
 <section class="mb-6 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
-	<h2 class="text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
-		Upload drills
-	</h2>
+	<h2 class="text-sm font-semibold tracking-wide text-surface-600-400 uppercase">Upload drills</h2>
 	<p class="mt-1 text-xs text-surface-500">
-		CSV or JSON file. A row whose <code>slug</code> matches an existing drill updates it; otherwise
-		a new drill is created.
+		CSV or JSON file. A row whose <code>slug</code> matches an existing drill updates it; otherwise a
+		new drill is created.
 	</p>
 	<input
 		bind:this={fileInput}

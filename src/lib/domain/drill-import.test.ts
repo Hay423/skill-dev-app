@@ -102,7 +102,16 @@ describe('parseDrillsJson', () => {
 				difficulty: 1,
 				tracks_reps: true
 			},
-			{ name: '', category: 'marking', summary: 'x', setup: 'x', min_players: 1, duration_minutes: 10, difficulty: 1, tracks_reps: true }
+			{
+				name: '',
+				category: 'marking',
+				summary: 'x',
+				setup: 'x',
+				min_players: 1,
+				duration_minutes: 10,
+				difficulty: 1,
+				tracks_reps: true
+			}
 		]);
 
 		const { drills, errors } = parseDrillsJson(json);

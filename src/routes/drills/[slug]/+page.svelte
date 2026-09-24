@@ -53,7 +53,9 @@
 		</h2>
 		<ul class="space-y-2">
 			{#each drill.coaching_points as point (point)}
-				<li class="flex gap-2 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 text-sm">
+				<li
+					class="flex gap-2 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 text-sm"
+				>
 					<span class="text-primary-500" aria-hidden="true">▸</span>
 					<span>{point}</span>
 				</li>

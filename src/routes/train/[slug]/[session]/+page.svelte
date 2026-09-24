@@ -12,7 +12,12 @@
 		weekOf
 	} from '$lib/domain/program-plan';
 	import { describeExclusion, isEligible, type RecommendationContext } from '$lib/domain/recommend';
-	import { allItemsTicked, weekProgress, type PlannedDay, type ScheduledSession } from '$lib/domain/schedule';
+	import {
+		allItemsTicked,
+		weekProgress,
+		type PlannedDay,
+		type ScheduledSession
+	} from '$lib/domain/schedule';
 	import {
 		isExtraItemId,
 		tailorSession,
@@ -220,7 +225,9 @@
 	function extraNote(exercise: Exercise): string {
 		if (!context) return 'Position extra';
 		const [top] = topQualitiesFor(exercise, context);
-		return top ? `Position extra — ${PHYSICAL_QUALITY_LABELS[top].toLowerCase()}` : 'Position extra';
+		return top
+			? `Position extra — ${PHYSICAL_QUALITY_LABELS[top].toLowerCase()}`
+			: 'Position extra';
 	}
 </script>
 

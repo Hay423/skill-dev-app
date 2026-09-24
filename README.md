@@ -18,7 +18,7 @@ npm install
 npm run dev
 ```
 
-Then open the printed URL. To try it as it is actually used, open DevTools, 
+Then open the printed URL. To try it as it is actually used, open DevTools,
 switch to a phone viewport (390px wide), and throttle to offline after the first
 load — everything should keep working.
 
