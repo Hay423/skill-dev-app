@@ -11,6 +11,7 @@
 		SESSION_TYPE_LABELS,
 		weekOf
 	} from '$lib/domain/program-plan';
+	import { describeHeartRate, describeMaxHrBasis, estimateMaxHr } from '$lib/domain/heart-rate';
 	import { describeExclusion, isEligible, type RecommendationContext } from '$lib/domain/recommend';
 	import {
 		allItemsTicked,
@@ -35,6 +36,7 @@
 		type Exercise,
 		type PlayerProfile,
 		type PositionProfile,
+		type ProgramItem,
 		type ProgramPlan
 	} from '$lib/types';
 	import { localDate } from '$lib/util/time';
@@ -154,6 +156,35 @@
 
 	const loaded = $derived(session ? isLoadedSession(session, items, exercises) : false);
 	const scaled = $derived(hasScaledPrescription(visible.map(({ item }) => item)));
+
+	/**
+	 * Estimated from age, because a real maximum needs a supervised test to
+	 * exhaustion — see `domain/heart-rate.ts`. Null until the profile has loaded,
+	 * which is the one state where no heart rate line can be drawn at all.
+	 */
+	const maxHr = $derived(profile ? estimateMaxHr(profile, today) : null);
+
+	/**
+	 * The heart rate line under an item's prescription, or null where there is
+	 * nothing worth printing — a plank has no target and would only be noise.
+	 */
+	function heartRate(item: ProgramItem, exercise: Exercise | null): string | null {
+		if (maxHr === null || !session) return null;
+		return describeHeartRate({
+			item,
+			exercise,
+			session_type: session.type,
+			week,
+			adjust,
+			max_hr: maxHr
+		});
+	}
+
+	/** Whether anything on this session actually prints a heart rate, so the note can be withheld. */
+	const showsHeartRate = $derived(
+		visible.some(({ item, exercise }) => heartRate(item, exercise) !== null) ||
+			tailored.extras.some(({ item, exercise }) => heartRate(item, exercise) !== null)
+	);
 
 	/** Ticking is only offered for the week the session is actually scheduled in. */
 	const canTick = $derived(placement !== undefined && placement.day.tickable);
@@ -305,6 +336,11 @@
 						<p class="mt-1 text-sm tabular-nums text-surface-600-400">
 							{describePrescription(item, week, adjust)}
 						</p>
+						{#if heartRate(item, exercise)}
+							<p class="mt-0.5 text-xs tabular-nums text-surface-500">
+								{heartRate(item, exercise)}
+							</p>
+						{/if}
 						{#if substitutedFrom}
 							<p class="mt-1 inline-block rounded-full preset-tonal-primary px-2 py-0.5 text-xs">
 								{substitutionNote(substitutedFrom)}
@@ -371,6 +407,11 @@
 								<p class="mt-1 text-sm tabular-nums text-surface-600-400">
 									{describePrescription(item, week, adjust)}
 								</p>
+								{#if heartRate(item, exercise)}
+									<p class="mt-0.5 text-xs tabular-nums text-surface-500">
+										{heartRate(item, exercise)}
+									</p>
+								{/if}
 								<p class="mt-1 inline-block rounded-full preset-tonal-surface px-2 py-0.5 text-xs">
 									{extraNote(exercise)}
 								</p>
@@ -447,5 +488,14 @@
 				the {Math.round((1 - adjust) * 100)}% masters reduction.
 			{/if}
 		</p>
+	{/if}
+
+	<!--
+		Where the beats came from, said out loud. A player who knows their own
+		maximum needs to be told these are not it, and a player who does not needs
+		to know the percentage is the part to train to.
+	-->
+	{#if showsHeartRate && profile}
+		<p class="mt-2 text-xs text-surface-500">{describeMaxHrBasis(profile, today)}</p>
 	{/if}
 {/if}

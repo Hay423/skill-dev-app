@@ -110,6 +110,8 @@ describe('prescriptions for masters', () => {
 		work_seconds: null,
 		reps_count: null,
 		recovery_seconds: null,
+		hr_pct_min: null,
+		hr_pct_max: null,
 		notes: null
 	};
 
@@ -252,9 +254,14 @@ describe('the U17 blocks', () => {
 	});
 
 	it('stay out of reach of the age bands below them', () => {
+		// Asserted as "nothing under load", not as "conditioning only". Plyometrics
+		// is deliberately open below u17 — landing technique needs no equipment and
+		// is what keeps a junior's ankles and knees intact — so the rule that
+		// matters is the absence of resistance work, not the absence of everything
+		// but running.
 		for (const band of ['u11', 'u13', 'u15'] as AgeGroup[]) {
 			const { recommended } = recommendPrograms(SEED_PROGRAMS, ctx({ age_group: band }));
-			expect(recommended.every((r) => r.program.discipline === 'conditioning')).toBe(true);
+			expect(recommended.some((r) => r.program.discipline === 'strength')).toBe(false);
 		}
 	});
 

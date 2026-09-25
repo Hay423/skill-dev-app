@@ -602,5 +602,81 @@ export const SEED_EXERCISES: Exercise[] = [
 		accessory_dose: { sets: 3, reps: '8', rest_seconds: 90 },
 		regression_slug: 'push-up',
 		progression_slug: null
+	},
+
+	// --- Reactive plyometrics. Bodyweight, but the most demanding work here:
+	// every one of these is prescribed by quality and stops when the landings
+	// get loud. See the plyometric blocks in `programs.ts`. ---
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d35',
+		slug: 'broad-jump',
+		name: 'Standing broad jump',
+		movement_pattern: 'plyometric',
+		primary_qualities: ['power', 'acceleration'],
+		equipment_required: [],
+		min_age_group: 'u13',
+		contraindicated_regions: ['knee', 'ankle', 'hamstring'],
+		coaching_points: [
+			'Swing the arms back, then drive them forward and jump for distance',
+			'Land on both feet and stick it — a stumble forward is a jump you were not in control of',
+			'Reset fully between jumps; the last one should go as far as the first'
+		],
+		accessory_dose: { sets: 3, reps: '4', rest_seconds: 90 },
+		regression_slug: 'pogo-hops',
+		progression_slug: 'bounding'
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d36',
+		slug: 'bounding',
+		name: 'Bounding',
+		movement_pattern: 'plyometric',
+		primary_qualities: ['power', 'speed', 'acceleration'],
+		equipment_required: [],
+		min_age_group: 'u15',
+		contraindicated_regions: ['hamstring', 'knee', 'ankle', 'quad'],
+		coaching_points: [
+			'Long, exaggerated strides — reach for ground rather than pushing off it',
+			'Drive the opposite knee up and through, arms working hard',
+			'On grass only, and never on a leg that is already sore'
+		],
+		accessory_dose: { sets: 4, reps: '20 m', rest_seconds: 90 },
+		regression_slug: 'broad-jump',
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d37',
+		slug: 'hurdle-hop',
+		name: 'Hurdle hop',
+		movement_pattern: 'plyometric',
+		primary_qualities: ['power', 'agility', 'robustness'],
+		equipment_required: [],
+		min_age_group: 'u15',
+		contraindicated_regions: ['ankle', 'knee'],
+		coaching_points: [
+			'Low obstacles — a line of cones or a folded towel is plenty',
+			'Land and leave: stiff ankles, minimum ground contact, no pause between hops',
+			'Stop the set the moment the contacts get loud or the rhythm breaks'
+		],
+		accessory_dose: { sets: 3, reps: '5 hops', rest_seconds: 90 },
+		regression_slug: 'pogo-hops',
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d38',
+		slug: 'depth-jump',
+		name: 'Depth jump',
+		movement_pattern: 'plyometric',
+		primary_qualities: ['power', 'speed'],
+		equipment_required: ['full_gym'],
+		min_age_group: 'u17',
+		contraindicated_regions: ['knee', 'ankle', 'hamstring', 'back'],
+		coaching_points: [
+			'Step off a low box, then jump straight back up the instant you land',
+			'The ground contact is the whole point — if you sink into it, the box is too high',
+			'Five jumps is a set. This is the most demanding thing in the block, and the first to be cut when the legs are flat'
+		],
+		accessory_dose: { sets: 3, reps: '4', rest_seconds: 150 },
+		regression_slug: 'drop-landing',
+		progression_slug: null
 	}
 ];

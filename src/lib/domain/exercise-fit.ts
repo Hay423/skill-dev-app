@@ -247,6 +247,10 @@ function extraItem(exercise: Exercise, session_id: Uuid, order: number): Program
 		work_seconds: null,
 		reps_count: null,
 		recovery_seconds: null,
+		// No authored band: an accessory lift reads the between-sets recovery
+		// threshold its movement pattern earns it. See `domain/heart-rate.ts`.
+		hr_pct_min: null,
+		hr_pct_max: null,
 		notes: null
 	};
 }

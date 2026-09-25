@@ -32,12 +32,30 @@ export const SESSION_TYPE_LABELS: Record<ProgramSession['type'], string> = {
 	strength: 'Strength',
 	running: 'Running',
 	skills: 'Skills',
-	recovery: 'Recovery'
+	recovery: 'Recovery',
+	plyometric: 'Plyometrics'
 };
 
 export const DISCIPLINE_LABELS: Record<TrainingProgram['discipline'], string> = {
 	strength: 'Strength',
-	conditioning: 'Running & conditioning'
+	conditioning: 'Running & conditioning',
+	plyometrics: 'Plyometrics'
+};
+
+/**
+ * The order two or three disciplines are done in when they land on the same
+ * day: jump, then run, then lift.
+ *
+ * Explicit rather than alphabetical. The order is a training decision — the
+ * fast, neural work comes first because it is the work that is ruined by tired
+ * legs, and lifting last because it is the least affected by being third. Sorted
+ * alphabetically, 'conditioning' would have come before 'plyometrics' and the
+ * running would have been done on legs that had just finished jumping.
+ */
+export const DISCIPLINE_SESSION_ORDER: Record<TrainingProgram['discipline'], number> = {
+	plyometrics: 0,
+	conditioning: 1,
+	strength: 2
 };
 
 /** The sessions of one week, in the order they are meant to be done. */
@@ -190,7 +208,8 @@ export function hasScaledPrescription(items: ProgramItem[]): boolean {
 			item.load_pct_1rm !== null ||
 			item.rpe !== null ||
 			item.reps_count !== null ||
-			item.work_seconds !== null
+			item.work_seconds !== null ||
+			item.hr_pct_min !== null
 	);
 }
 

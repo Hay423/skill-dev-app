@@ -2,6 +2,7 @@
 	import { repo } from '$lib/data';
 	import { parseDrillsCsv, parseDrillsJson, type DrillImportError } from '$lib/domain/drill-import';
 	import type { DrillInput } from '$lib/data/repo';
+	import { drillTitle } from '$lib/domain/drills';
 	import { SKILL_CATEGORY_LABELS, type Drill } from '$lib/types';
 
 	let drills = $state<Drill[]>([]);
@@ -146,7 +147,7 @@
 				<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
 					<div class="flex items-start justify-between gap-3">
 						<div class="min-w-0">
-							<p class="truncate font-semibold">{drill.name}</p>
+							<p class="truncate font-semibold">{drillTitle(drill)}</p>
 							<p class="text-xs text-surface-500">
 								{SKILL_CATEGORY_LABELS[drill.category]}
 								{drill.source === 'custom' ? ' · Your drill' : ''}
@@ -188,7 +189,7 @@
 					<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 opacity-70">
 						<div class="flex items-start justify-between gap-3">
 							<div class="min-w-0">
-								<p class="truncate font-semibold">{drill.name}</p>
+								<p class="truncate font-semibold">{drillTitle(drill)}</p>
 								<p class="text-xs text-surface-500">{SKILL_CATEGORY_LABELS[drill.category]}</p>
 							</div>
 							<div class="flex shrink-0 gap-2">

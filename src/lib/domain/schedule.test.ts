@@ -124,6 +124,8 @@ function makePlan(
 				work_seconds: null,
 				reps_count: null,
 				recovery_seconds: null,
+				hr_pct_min: null,
+				hr_pct_max: null,
 				notes: null
 			});
 		}

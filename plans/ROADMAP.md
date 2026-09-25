@@ -37,6 +37,24 @@ shape, so doing it first avoids reworking session code.
 Phases 2–6 (content pipeline, recommendations, strength/conditioning
 programs) are not started; see the open questions in player-profile.md.
 
+Since then the program library has grown a third discipline and a heart rate
+prescription:
+
+- **Plyometrics** is `discipline: 'plyometrics'` with `type: 'plyometric'` sessions
+  and its own section on `/train` — four blocks, gated at `u13` for landing and
+  hopping and `u17` for reactive work, deliberately open below the `u17` floor
+  on resistance training.
+- **Heart rate** is a `%HRmax` band on `ProgramItem` (`hr_pct_min`/`hr_pct_max`),
+  rendered as a zone, a band and an estimated bpm by `domain/heart-rate.ts`. The
+  maximum is estimated from age (Tanaka), not measured — a real maximum needs a
+  supervised test to exhaustion. Resistance work reads a between-sets recovery
+  threshold instead of a work band, and core work reads nothing.
+
+Open: no way to enter a **measured** maximum heart rate. The estimate is within
+roughly ±10 bpm, which is fine for a zone and wrong for a player who has been
+tested. An optional `max_hr` on `PlayerProfile` would be a schema bump and a
+form field, and `estimateMaxHr` is already the only place the number comes from.
+
 ### 1. Guided sessions
 
 The second half of the core loop. Pick drills → run through them one at a time

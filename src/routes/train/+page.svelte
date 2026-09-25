@@ -1,14 +1,11 @@
 <script lang="ts">
 	import { repo } from '$lib/data';
+	import ProgramList from '$lib/components/ProgramList.svelte';
 	import SupervisionNote from '$lib/components/SupervisionNote.svelte';
 	import WeekPlan from '$lib/components/WeekPlan.svelte';
 	import { loadWeekPlan } from '$lib/plan';
 	import type { PlannedDay } from '$lib/domain/schedule';
-	import {
-		DISCIPLINE_LABELS,
-		describeProgramShape,
-		describeQualities
-	} from '$lib/domain/program-plan';
+	import { DISCIPLINE_LABELS } from '$lib/domain/program-plan';
 	import { programWeekOn } from '$lib/domain/schedule';
 	import {
 		describeExclusion,
@@ -82,6 +79,9 @@
 	const conditioning = $derived(
 		result.recommended.filter((r) => r.program.discipline === 'conditioning')
 	);
+	const plyometrics = $derived(
+		result.recommended.filter((r) => r.program.discipline === 'plyometrics')
+	);
 
 	/**
 	 * Withheld strength is stated up front rather than left to the exclusions
@@ -123,7 +123,7 @@
 <header class="mb-4">
 	<h1 class="text-2xl font-bold">Train</h1>
 	<p class="text-sm text-surface-600-400">
-		Strength and running programs, matched to your profile.
+		Strength, running and plyometric programs, matched to your profile.
 	</p>
 </header>
 
@@ -207,35 +207,7 @@
 			</p>
 		{:else}
 			<div class="mb-2"><SupervisionNote /></div>
-			<ul class="space-y-2">
-				{#each strength as { program, reason, caution } (program.id)}
-					<li>
-						<a
-							href="/train/{program.slug}"
-							class="tap-target block rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 active:bg-surface-200-800"
-						>
-							<h3 class="font-semibold">{program.name}</h3>
-							<p class="mt-1 text-sm text-surface-600-400">{program.summary}</p>
-							<p class="mt-2 text-xs text-surface-500">{describeProgramShape(program)}</p>
-							{#if enrolledIds.has(program.id)}
-								<p
-									class="mt-2 inline-block rounded-full preset-filled-primary-500 px-2 py-0.5 text-xs"
-								>
-									Running now
-								</p>
-							{:else if caution}
-								<p class="mt-2 inline-block rounded-full preset-tonal-surface px-2 py-0.5 text-xs">
-									{caution}
-								</p>
-							{:else if reason}
-								<p class="mt-2 inline-block rounded-full preset-tonal-primary px-2 py-0.5 text-xs">
-									{reason}
-								</p>
-							{/if}
-						</a>
-					</li>
-				{/each}
-			</ul>
+			<ProgramList programs={strength} {enrolledIds} />
 		{/if}
 	</section>
 
@@ -250,36 +222,33 @@
 				No running programs match your profile yet.
 			</p>
 		{:else}
-			<ul class="space-y-2">
-				{#each conditioning as { program, reason, caution } (program.id)}
-					<li>
-						<a
-							href="/train/{program.slug}"
-							class="tap-target block rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 active:bg-surface-200-800"
-						>
-							<h3 class="font-semibold">{program.name}</h3>
-							<p class="mt-1 text-sm text-surface-600-400">{program.summary}</p>
-							<p class="mt-2 text-xs text-surface-500">{describeProgramShape(program)}</p>
-							<p class="text-xs text-surface-500">{describeQualities(program)}</p>
-							{#if enrolledIds.has(program.id)}
-								<p
-									class="mt-2 inline-block rounded-full preset-filled-primary-500 px-2 py-0.5 text-xs"
-								>
-									Running now
-								</p>
-							{:else if caution}
-								<p class="mt-2 inline-block rounded-full preset-tonal-surface px-2 py-0.5 text-xs">
-									{caution}
-								</p>
-							{:else if reason}
-								<p class="mt-2 inline-block rounded-full preset-tonal-primary px-2 py-0.5 text-xs">
-									{reason}
-								</p>
-							{/if}
-						</a>
-					</li>
-				{/each}
-			</ul>
+			<ProgramList programs={conditioning} {enrolledIds} />
+		{/if}
+	</section>
+
+	<!--
+		Plyometrics sits last of the three because it is the one a player adds on
+		top, not the one they start with — but it is a section of its own rather
+		than a note under strength, since it is open to juniors that strength is
+		withheld from entirely.
+	-->
+	<section class="mb-6">
+		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
+			{DISCIPLINE_LABELS.plyometrics}
+		</h2>
+		{#if plyometrics.length === 0}
+			<p
+				class="rounded-xl border border-dashed border-surface-200-800 p-6 text-center text-sm text-surface-500"
+			>
+				No plyometric programs match your profile yet.
+			</p>
+		{:else}
+			<p class="mb-2 text-xs text-surface-500">
+				Jumping and landing work. Grass, runners, and a set that stops the moment the landings get
+				loud — the quality is the whole point, and there is nothing to be gained by pushing through
+				a tired one.
+			</p>
+			<ProgramList programs={plyometrics} {enrolledIds} />
 		{/if}
 	</section>
 

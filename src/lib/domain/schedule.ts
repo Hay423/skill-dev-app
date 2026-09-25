@@ -15,7 +15,7 @@ import {
 } from '$lib/types';
 import { addDays, startOfWeek, weekDates, weekdayOf, weeksBetween } from '$lib/util/time';
 import { maxSkillsDaysFor } from './load-policy';
-import { itemsForSession, sessionsForWeek, weekOf } from './program-plan';
+import { DISCIPLINE_SESSION_ORDER, itemsForSession, sessionsForWeek, weekOf } from './program-plan';
 
 /**
  * Turning enrolments into a week the player can actually follow: which day each
@@ -238,12 +238,15 @@ export function planWeek(input: WeekPlanInput): PlannedDay[] {
 		}
 	}
 
-	// On a doubled-up day, run before you lift: the running is the quality work
-	// and it is the one that suffers from being done on tired legs.
+	// On a doubled-up day, jump before you run and run before you lift: the fast
+	// work is the quality work, and it is the one that suffers from being done on
+	// tired legs. The order is named in `DISCIPLINE_SESSION_ORDER` rather than
+	// left to how the disciplines happen to sort alphabetically.
 	for (const day of days) {
 		day.sessions.sort(
 			(a, b) =>
-				a.program.discipline.localeCompare(b.program.discipline) ||
+				DISCIPLINE_SESSION_ORDER[a.program.discipline] -
+					DISCIPLINE_SESSION_ORDER[b.program.discipline] ||
 				a.session.day_index - b.session.day_index
 		);
 	}

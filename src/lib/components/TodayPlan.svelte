@@ -3,6 +3,7 @@
 	import AffirmationCard from '$lib/components/AffirmationCard.svelte';
 	import { loadAffirmation } from '$lib/affirm';
 	import type { Affirmation } from '$lib/domain/affirmations';
+	import { drillTitle } from '$lib/domain/drills';
 	import { SESSION_TYPE_LABELS } from '$lib/domain/program-plan';
 	import { dayOf, weekProgress, type PlannedDay } from '$lib/domain/schedule';
 	import { SKILL_CATEGORY_LABELS, type IsoDate } from '$lib/types';
@@ -115,7 +116,9 @@
 					No program session — optional skills
 				</p>
 				<p class="mt-1 font-semibold">
-					{day.skills.drill?.name ?? SKILL_CATEGORY_LABELS[day.skills.category]}
+					{day.skills.drill
+						? drillTitle(day.skills.drill)
+						: SKILL_CATEGORY_LABELS[day.skills.category]}
 				</p>
 				{#if day.skills.drill}
 					<p class="mt-1 text-sm text-surface-600-400">{day.skills.drill.summary}</p>

@@ -87,6 +87,18 @@ interface ItemSpec {
 	work_seconds?: number;
 	reps_count?: number;
 	recovery_seconds?: number;
+	/**
+	 * Target working heart rate as a band in `%HRmax`, authored where the effort
+	 * is what is being prescribed: running and jumping.
+	 *
+	 * Left off a lift deliberately. A set of five at 80% is prescribed by load,
+	 * and `domain/heart-rate.ts` prints a between-sets recovery threshold for it
+	 * instead of inventing a work band. Left off a running item, the same module
+	 * falls back to a default read from the prescription's shape — but the
+	 * default cannot tell a hard 400 from a jog to finish, which is why these are
+	 * written out.
+	 */
+	hr?: [min: number, max: number];
 	notes?: string;
 }
 
@@ -151,6 +163,8 @@ function expand(spec: ProgramSpec): ProgramPlan {
 					work_seconds: item.work_seconds ?? null,
 					reps_count: item.reps_count ?? null,
 					recovery_seconds: item.recovery_seconds ?? null,
+					hr_pct_min: item.hr?.[0] ?? null,
+					hr_pct_max: item.hr?.[1] ?? null,
 					notes: item.notes ?? null
 				});
 			});
@@ -569,9 +583,14 @@ const SPECS: ProgramSpec[] = [
 						reps_count: 4,
 						distance_m: 60,
 						recovery_seconds: 60,
+						hr: [70, 80],
 						notes: 'Strides — build to about three-quarter pace, never a flat sprint'
 					},
-					{ work_seconds: 480, notes: 'Easy continuous run — you should be able to hold a chat' }
+					{
+						work_seconds: 480,
+						hr: [65, 75],
+						notes: 'Easy continuous run — you should be able to hold a chat'
+					}
 				]
 			},
 			{
@@ -586,9 +605,10 @@ const SPECS: ProgramSpec[] = [
 						reps_count: 6,
 						distance_m: 20,
 						recovery_seconds: 45,
+						hr: [80, 88],
 						notes: 'Shuttles — plant and turn off the outside foot, both directions'
 					},
-					{ work_seconds: 600, notes: 'Easy continuous run' }
+					{ work_seconds: 600, hr: [65, 75], notes: 'Easy continuous run' }
 				]
 			}
 		]
@@ -632,12 +652,14 @@ const SPECS: ProgramSpec[] = [
 						reps_count: 6,
 						distance_m: 20,
 						recovery_seconds: 90,
+						hr: [75, 85],
 						notes: 'Accelerations from a standing start — full recovery, quality over quantity'
 					},
 					{
 						reps_count: 4,
 						distance_m: 30,
 						recovery_seconds: 120,
+						hr: [80, 88],
 						notes: 'Flying 30s — build over 20 m, then hold top speed through the zone'
 					}
 				]
@@ -656,9 +678,10 @@ const SPECS: ProgramSpec[] = [
 						work_seconds: 6,
 						recovery_seconds: 24,
 						rest_seconds: 180,
+						hr: [88, 95],
 						notes: 'Six 40 m efforts on 30 s, three sets, three minutes between sets'
 					},
-					{ work_seconds: 300, notes: 'Easy jog to finish' }
+					{ work_seconds: 300, hr: [60, 70], notes: 'Easy jog to finish' }
 				]
 			},
 			{
@@ -667,14 +690,15 @@ const SPECS: ProgramSpec[] = [
 				type: 'running',
 				duration_minutes: 45,
 				items: [
-					{ work_seconds: 480, notes: 'Easy warm-up run' },
+					{ work_seconds: 480, hr: [60, 70], notes: 'Easy warm-up run' },
 					{
 						reps_count: 6,
 						distance_m: 400,
 						recovery_seconds: 120,
+						hr: [85, 92],
 						notes: 'Hard but even — the last one should match the first'
 					},
-					{ work_seconds: 300, notes: 'Easy jog to finish' }
+					{ work_seconds: 300, hr: [60, 70], notes: 'Easy jog to finish' }
 				]
 			}
 		]
@@ -714,12 +738,14 @@ const SPECS: ProgramSpec[] = [
 						reps_count: 4,
 						distance_m: 60,
 						recovery_seconds: 60,
+						hr: [70, 80],
 						notes: 'Strides at three-quarter pace'
 					},
 					{
 						reps_count: 8,
 						distance_m: 60,
 						recovery_seconds: 60,
+						hr: [85, 92],
 						notes: 'Hard runs — the length of a lead, with a walk back between'
 					}
 				]
@@ -730,13 +756,315 @@ const SPECS: ProgramSpec[] = [
 				type: 'running',
 				duration_minutes: 30,
 				items: [
-					{ work_seconds: 1200, notes: 'Steady continuous run' },
+					{ work_seconds: 1200, hr: [70, 78], notes: 'Steady continuous run' },
 					{
 						reps_count: 4,
 						distance_m: 100,
 						recovery_seconds: 90,
+						hr: [80, 88],
 						notes: 'Even-paced, controlled — not a sprint session'
 					}
+				]
+			}
+		]
+	},
+
+	// ------------------------------------------------------------- plyometrics
+	//
+	// Jumping is its own discipline rather than a day inside a strength block,
+	// because it is gated differently and a player should be able to carry it
+	// alongside the other two. Landing technique is the cheapest injury
+	// insurance in football and it needs no equipment, so foundations open at
+	// `u13` — well below the `u17` floor on resistance work. What is held back
+	// is the reactive end: depth jumps and repeated bounding put several times
+	// bodyweight through a tendon, so those sit at `u17` and above.
+	//
+	// Every one of these is prescribed by quality. The heart rate bands are
+	// deliberately low: a set of hops that drives the heart rate up has stopped
+	// being a jumping set and turned into conditioning, which is a different
+	// session and a worse one.
+	{
+		program: {
+			id: '9a5c0d31-9e47-4b8f-a2c6-0d1e2f3a4b09',
+			slug: 'plyo-landing-foundations',
+			name: 'Landing and hopping foundations',
+			discipline: 'plyometrics',
+			phase: 'pre_season',
+			target_positions: [],
+			target_qualities: ['robustness', 'power', 'agility'],
+			min_age_group: 'u13',
+			experience: ['first_year', 'developing'],
+			weeks: 4,
+			sessions_per_week: 2,
+			equipment_required: [],
+			summary:
+				'Four weeks of learning to land. Low hops and stuck landings on grass, nothing to jump off and nothing to carry — the knee and ankle control that keeps you on the park, built before anything reactive is asked of you.'
+		},
+		weeks: [
+			{ focus: 'Land it quietly', intensity_modifier: 0.9 },
+			{ focus: 'Land it quietly', intensity_modifier: 0.95 },
+			{ focus: 'Hold every landing', intensity_modifier: 1 },
+			{ focus: 'Add a little spring', intensity_modifier: 1.05 }
+		],
+		sessions: [
+			{
+				day_index: 1,
+				name: 'Landing and hopping',
+				type: 'plyometric',
+				duration_minutes: 25,
+				items: [
+					{
+						exercise_slug: 'bodyweight-squat',
+						sets: 2,
+						reps: '10',
+						rest_seconds: 30,
+						notes: 'Warm-up'
+					},
+					{ exercise_slug: 'ankling', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
+					{ exercise_slug: 'pogo-hops', sets: 3, reps: '10', rest_seconds: 60, hr: [60, 72] },
+					{
+						exercise_slug: 'drop-landing',
+						sets: 3,
+						reps: '5',
+						rest_seconds: 90,
+						hr: [55, 68],
+						notes: 'Off a kerb or a low step — height is not the point, the landing is'
+					},
+					{
+						exercise_slug: 'single-leg-hop-and-stick',
+						sets: 3,
+						reps: '4 each leg',
+						rest_seconds: 60,
+						hr: [58, 70]
+					},
+					{ exercise_slug: 'single-leg-balance', sets: 2, reps: '30 s each leg', rest_seconds: 30 }
+				]
+			},
+			{
+				day_index: 2,
+				name: 'Hop, stick and turn',
+				type: 'plyometric',
+				duration_minutes: 25,
+				items: [
+					{ exercise_slug: 'a-skip', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
+					{
+						exercise_slug: 'lateral-bound',
+						sets: 3,
+						reps: '5 each side',
+						rest_seconds: 90,
+						hr: [60, 72],
+						notes: 'Sideways off the outside foot — the movement a spoil is made of'
+					},
+					{ exercise_slug: 'broad-jump', sets: 3, reps: '4', rest_seconds: 90, hr: [60, 72] },
+					{ exercise_slug: 'pogo-hops', sets: 2, reps: '12', rest_seconds: 60, hr: [62, 75] },
+					{ exercise_slug: 'dead-bug', sets: 2, reps: '8 each side', rest_seconds: 45 }
+				]
+			}
+		]
+	},
+	{
+		program: {
+			id: 'aa5c0d31-9e47-4b8f-a2c6-0d1e2f3a4b0a',
+			slug: 'plyo-preseason-power',
+			name: 'Pre-season reactive power',
+			discipline: 'plyometrics',
+			phase: 'pre_season',
+			target_positions: [],
+			target_qualities: ['power', 'speed', 'acceleration'],
+			min_age_group: 'senior',
+			experience: ['developing', 'experienced'],
+			weeks: 6,
+			sessions_per_week: 2,
+			equipment_required: ['full_gym'],
+			summary:
+				'Six weeks of jumping for a first step that arrives before your opponent does. One vertical day, one horizontal day, both short — quality dies quickly here, and a set carried on past that point is only risk.'
+		},
+		// Narrow modifiers, as in the strength blocks, and for a sharper reason:
+		// volume is what hurts people in a jumping block. The work progresses by
+		// getting crisper, not longer.
+		weeks: [
+			{ focus: 'Rebuild the springs', intensity_modifier: 0.85 },
+			{ focus: 'Rebuild the springs', intensity_modifier: 0.95 },
+			{ focus: 'Get reactive', intensity_modifier: 1 },
+			{ focus: 'Deload — landings only', intensity_modifier: 0.8, is_deload: true },
+			{ focus: 'Sharpen', intensity_modifier: 1.05 },
+			{ focus: 'Top of the block', intensity_modifier: 1.1 }
+		],
+		sessions: [
+			{
+				day_index: 1,
+				name: 'Vertical power',
+				type: 'plyometric',
+				duration_minutes: 40,
+				items: [
+					{ exercise_slug: 'ankling', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
+					{ exercise_slug: 'pogo-hops', sets: 3, reps: '10', rest_seconds: 60, hr: [62, 75] },
+					{ exercise_slug: 'box-jump', sets: 5, reps: '3', rest_seconds: 120, hr: [65, 78] },
+					{
+						exercise_slug: 'depth-jump',
+						sets: 3,
+						reps: '4',
+						rest_seconds: 150,
+						hr: [60, 74],
+						notes: 'The hardest thing in the block — cut it entirely on flat legs'
+					},
+					{ exercise_slug: 'hurdle-hop', sets: 3, reps: '5 hops', rest_seconds: 90, hr: [65, 78] }
+				]
+			},
+			{
+				day_index: 2,
+				name: 'Horizontal power',
+				type: 'plyometric',
+				duration_minutes: 40,
+				items: [
+					{ exercise_slug: 'a-skip', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
+					{ exercise_slug: 'broad-jump', sets: 4, reps: '3', rest_seconds: 120, hr: [65, 78] },
+					{
+						exercise_slug: 'bounding',
+						sets: 4,
+						reps: '20 m',
+						rest_seconds: 120,
+						hr: [65, 78],
+						notes: 'Grass only, and never on a hamstring that is already talking to you'
+					},
+					{
+						exercise_slug: 'lateral-bound',
+						sets: 3,
+						reps: '4 each side',
+						rest_seconds: 90,
+						hr: [65, 78]
+					},
+					{
+						exercise_slug: 'single-leg-hop-and-stick',
+						sets: 3,
+						reps: '4 each leg',
+						rest_seconds: 60,
+						hr: [60, 72]
+					}
+				]
+			}
+		]
+	},
+	{
+		program: {
+			id: 'ab5c0d31-9e47-4b8f-a2c6-0d1e2f3a4b0b',
+			slug: 'u17-plyo-preseason-power',
+			name: 'Pre-season reactive power (Under 17)',
+			discipline: 'plyometrics',
+			phase: 'pre_season',
+			target_positions: [],
+			target_qualities: ['power', 'speed', 'acceleration'],
+			min_age_group: 'u17',
+			experience: ['developing', 'experienced'],
+			weeks: 6,
+			sessions_per_week: 2,
+			equipment_required: [],
+			summary:
+				'The senior jumping block, written for a seventeen year old: the same six weeks and the same two days, on grass with nothing to jump off. No depth jumps — the landing forces are the part a still-growing tendon does not need yet.'
+		},
+		// The senior block's shape on purpose, so finishing this one and stepping
+		// into `plyo-preseason-power` next year is a change of exercise rather
+		// than a change of habit. What comes out is the work that multiplies
+		// landing force: the box and the depth jump.
+		weeks: [
+			{ focus: 'Rebuild the springs', intensity_modifier: 0.85 },
+			{ focus: 'Rebuild the springs', intensity_modifier: 0.95 },
+			{ focus: 'Get reactive', intensity_modifier: 1 },
+			{ focus: 'Deload — landings only', intensity_modifier: 0.8, is_deload: true },
+			{ focus: 'Sharpen', intensity_modifier: 1.05 },
+			{ focus: 'Top of the block', intensity_modifier: 1.1 }
+		],
+		sessions: [
+			{
+				day_index: 1,
+				name: 'Vertical power',
+				type: 'plyometric',
+				duration_minutes: 35,
+				items: [
+					{ exercise_slug: 'ankling', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
+					{ exercise_slug: 'pogo-hops', sets: 3, reps: '10', rest_seconds: 60, hr: [62, 75] },
+					{ exercise_slug: 'hurdle-hop', sets: 4, reps: '5 hops', rest_seconds: 90, hr: [65, 78] },
+					{ exercise_slug: 'drop-landing', sets: 3, reps: '5', rest_seconds: 90, hr: [55, 68] },
+					{
+						exercise_slug: 'single-leg-hop-and-stick',
+						sets: 3,
+						reps: '4 each leg',
+						rest_seconds: 60,
+						hr: [60, 72]
+					}
+				]
+			},
+			{
+				day_index: 2,
+				name: 'Horizontal power',
+				type: 'plyometric',
+				duration_minutes: 35,
+				items: [
+					{ exercise_slug: 'a-skip', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
+					{ exercise_slug: 'broad-jump', sets: 4, reps: '3', rest_seconds: 120, hr: [65, 78] },
+					{
+						exercise_slug: 'bounding',
+						sets: 3,
+						reps: '20 m',
+						rest_seconds: 120,
+						hr: [65, 78],
+						notes: 'Grass only — stop the set the moment the stride shortens'
+					},
+					{
+						exercise_slug: 'lateral-bound',
+						sets: 3,
+						reps: '4 each side',
+						rest_seconds: 90,
+						hr: [65, 78]
+					},
+					{ exercise_slug: 'pogo-hops', sets: 2, reps: '12', rest_seconds: 60, hr: [62, 75] }
+				]
+			}
+		]
+	},
+	{
+		program: {
+			id: 'ac5c0d31-9e47-4b8f-a2c6-0d1e2f3a4b0c',
+			slug: 'plyo-in-season-maintenance',
+			name: 'In-season plyometric maintenance',
+			discipline: 'plyometrics',
+			phase: 'in_season',
+			target_positions: [],
+			target_qualities: ['power', 'robustness'],
+			min_age_group: 'u15',
+			experience: ['first_year', 'developing', 'experienced'],
+			weeks: 6,
+			sessions_per_week: 1,
+			equipment_required: [],
+			summary:
+				'One twenty-minute session a week to keep the springs from going flat over a season. Low contacts, full recovery, and done early in the week — a jumping session close to a game costs you more than it gives you.'
+		},
+		weeks: [
+			{ focus: 'Keep it ticking over', intensity_modifier: 1 },
+			{ focus: 'Keep it ticking over', intensity_modifier: 1 },
+			{ focus: 'Keep it ticking over', intensity_modifier: 1.05 },
+			{ focus: 'Lighter week', intensity_modifier: 0.85, is_deload: true },
+			{ focus: 'Keep it ticking over', intensity_modifier: 1.05 },
+			{ focus: 'Keep it ticking over', intensity_modifier: 1 }
+		],
+		sessions: [
+			{
+				day_index: 1,
+				name: 'Springs top-up',
+				type: 'plyometric',
+				duration_minutes: 20,
+				items: [
+					{ exercise_slug: 'a-skip', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
+					{ exercise_slug: 'pogo-hops', sets: 2, reps: '10', rest_seconds: 60, hr: [60, 72] },
+					{ exercise_slug: 'hurdle-hop', sets: 2, reps: '5 hops', rest_seconds: 90, hr: [62, 75] },
+					{
+						exercise_slug: 'lateral-bound',
+						sets: 2,
+						reps: '4 each side',
+						rest_seconds: 90,
+						hr: [60, 72]
+					},
+					{ exercise_slug: 'broad-jump', sets: 2, reps: '3', rest_seconds: 90, hr: [60, 72] }
 				]
 			}
 		]

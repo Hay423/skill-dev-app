@@ -116,7 +116,9 @@ describe('junior strength gate', () => {
 	it('recommends no strength program from the seed library to a U13 or U15', () => {
 		for (const band of JUNIOR_BANDS) {
 			const { recommended, excluded } = recommendPrograms(SEED_PROGRAMS, ctx({ age_group: band }));
-			expect(recommended.every((r) => r.program.discipline === 'conditioning')).toBe(true);
+			// Not "conditioning only": plyometrics is open to juniors on purpose, and
+			// what is being asserted is that nothing prescribing load reaches them.
+			expect(recommended.some((r) => r.program.discipline === 'strength')).toBe(false);
 			// Every strength program in the library is accounted for, and each is
 			// excluded for the junior rule rather than incidentally on equipment.
 			const strengthExclusions = excluded.filter((e) => e.program.discipline === 'strength');

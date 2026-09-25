@@ -5,6 +5,7 @@
 	import AffirmationCard from '$lib/components/AffirmationCard.svelte';
 	import { loadAffirmation } from '$lib/affirm';
 	import type { Affirmation } from '$lib/domain/affirmations';
+	import { drillTitle } from '$lib/domain/drills';
 	import { formatAccuracy } from '$lib/domain/stats';
 	import {
 		SKILL_CATEGORIES,
@@ -118,7 +119,7 @@
 		>
 			<option value="">Freeform (no drill)</option>
 			{#each drills as drill (drill.id)}
-				<option value={drill.id}>{drill.name}</option>
+				<option value={drill.id}>{drillTitle(drill)}</option>
 			{/each}
 		</select>
 	</label>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { repo } from '$lib/data';
+	import { drillTitle } from '$lib/domain/drills';
 	import {
 		SKILL_CATEGORIES,
 		SKILL_CATEGORY_LABELS,
@@ -60,16 +61,15 @@
 				class="block rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 active:bg-surface-200-800"
 			>
 				<div class="flex items-start justify-between gap-3">
-					<h2 class="font-semibold">{drill.name}</h2>
+					<h2 class="font-semibold">{drillTitle(drill)}</h2>
 					<span class="shrink-0 text-xs text-surface-500">{drill.duration_minutes} min</span>
 				</div>
 				<p class="mt-1 text-sm text-surface-600-400">{drill.summary}</p>
+				<!-- The player count lives in the name now, so it is not repeated here. -->
 				<p class="mt-2 flex gap-2 text-xs text-surface-500">
 					<span>{SKILL_CATEGORY_LABELS[drill.category]}</span>
 					<span aria-hidden="true">·</span>
 					<span>{DIFFICULTY_LABELS[drill.difficulty]}</span>
-					<span aria-hidden="true">·</span>
-					<span>{drill.min_players === 1 ? 'Solo' : `${drill.min_players}+ players`}</span>
 				</p>
 			</a>
 		</li>

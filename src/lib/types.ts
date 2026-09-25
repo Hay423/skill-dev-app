@@ -419,16 +419,23 @@ export interface Exercise {
 }
 
 /**
- * A periodised strength or conditioning program. Conditioning (running)
- * blocks reuse this same hierarchy rather than a parallel one — a
- * conditioning block is `discipline: 'conditioning'` with `type: 'running'`
- * sessions whose items carry distance/time instead of sets/reps.
+ * A periodised strength, conditioning or plyometric program. Conditioning
+ * (running) and plyometric blocks reuse this same hierarchy rather than a
+ * parallel one — a conditioning block is `discipline: 'conditioning'` with
+ * `type: 'running'` sessions whose items carry distance/time instead of
+ * sets/reps, and a plyometric block is `discipline: 'plyometrics'` with
+ * `type: 'plyometric'` sessions prescribed in sets and contacts.
+ *
+ * `discipline` is what the player is enrolled in one of at a time: starting a
+ * block ends the one already running in the same discipline and only that one,
+ * so a player can carry a lifting block, a running block and a jumping block
+ * at once without them replacing each other.
  */
 export interface TrainingProgram {
 	id: Uuid;
 	slug: string;
 	name: string;
-	discipline: 'strength' | 'conditioning';
+	discipline: 'strength' | 'conditioning' | 'plyometrics';
 	phase: 'off_season' | 'pre_season' | 'in_season' | 'finals' | 'return_to_play';
 	/** Empty = applies to all positions. */
 	target_positions: Position[];
@@ -455,7 +462,7 @@ export interface ProgramSession {
 	week_number: number;
 	day_index: number;
 	name: string;
-	type: 'strength' | 'running' | 'skills' | 'recovery';
+	type: 'strength' | 'running' | 'skills' | 'recovery' | 'plyometric';
 	duration_minutes: number;
 }
 
@@ -475,6 +482,19 @@ export interface ProgramItem {
 	work_seconds: number | null;
 	reps_count: number | null;
 	recovery_seconds: number | null;
+	/**
+	 * Target working heart rate for this item, as a percentage of the player's
+	 * maximum — a band rather than a number, because an interval is held in a
+	 * range and nobody sits on a single value.
+	 *
+	 * Both null where the prescription does not lead with heart rate: a heavy
+	 * set of five is prescribed by load, and its heart rate is a consequence
+	 * rather than a target. `domain/heart-rate.ts` fills the gap with the
+	 * default for the movement, and prints a between-sets recovery threshold
+	 * instead of a work band for resistance work.
+	 */
+	hr_pct_min: number | null;
+	hr_pct_max: number | null;
 	notes: string | null;
 }
 

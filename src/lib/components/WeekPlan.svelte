@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { drillTitle } from '$lib/domain/drills';
 	import { SESSION_TYPE_LABELS } from '$lib/domain/program-plan';
 	import { canBrowseTo, weekProgress, type PlannedDay } from '$lib/domain/schedule';
 	import { repo } from '$lib/data';
@@ -260,7 +261,7 @@
 							{/if}
 						</p>
 						{#if current.skills.drill}
-							<p class="mt-1 text-sm text-surface-600-400">{current.skills.drill.name}</p>
+							<p class="mt-1 text-sm text-surface-600-400">{drillTitle(current.skills.drill)}</p>
 							<div class="mt-3 flex gap-2">
 								<a
 									href="/drills/{current.skills.drill.slug}"

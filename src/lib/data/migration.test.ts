@@ -567,3 +567,199 @@ describe('v6 -> v7 Dexie migration', () => {
 		v7.close();
 	});
 });
+
+describe('v7 -> v8 Dexie migration', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	/** The v7 schema, before program items carried a heart rate band. */
+	class V7Db extends Dexie {
+		constructor() {
+			super('skill-dev');
+			this.version(7).stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			});
+		}
+	}
+
+	const at = '2026-09-16T02:00:00.000Z';
+	const meta = {
+		created_at: at,
+		updated_at: at,
+		synced_at: null,
+		_dirty: 1 as const,
+		_deleted: 0 as const
+	};
+
+	/** A stored program subtree with no heart rate on its items, as v7 wrote it. */
+	async function seedV7Content(db: V7Db): Promise<void> {
+		await db.table('programs').add({
+			id: 'program-1',
+			slug: 'old-block',
+			name: 'Old block',
+			discipline: 'conditioning',
+			phase: 'pre_season',
+			target_positions: [],
+			target_qualities: ['aerobic_capacity'],
+			min_age_group: 'u11',
+			experience: ['developing'],
+			weeks: 1,
+			sessions_per_week: 1,
+			equipment_required: [],
+			summary: 'Seeded before heart rate existed.'
+		});
+		await db.table('program_weeks').add({
+			program_id: 'program-1',
+			week_number: 1,
+			focus: 'Build',
+			intensity_modifier: 1,
+			is_deload: false
+		});
+		await db.table('program_sessions').add({
+			id: 'session-1',
+			program_id: 'program-1',
+			week_number: 1,
+			day_index: 1,
+			name: 'Run',
+			type: 'running',
+			duration_minutes: 30
+		});
+		await db.table('program_items').add({
+			id: 'item-1',
+			session_id: 'session-1',
+			order: 1,
+			exercise_id: null,
+			sets: null,
+			reps: null,
+			rpe: null,
+			load_pct_1rm: null,
+			rest_seconds: null,
+			distance_m: null,
+			work_seconds: 600,
+			reps_count: null,
+			recovery_seconds: null,
+			notes: 'Easy run'
+		});
+	}
+
+	it('clears the bundled program subtree so the seeder can rewrite it', async () => {
+		// Heart rate bands are authored content, not something an upgrade can
+		// compute from a stored row. Clearing is what makes a re-seed the single
+		// source of the prescription, rather than leaving a device that seeded
+		// before v8 showing a program with no heart rate on it forever.
+		const v7 = new V7Db();
+		await seedV7Content(v7);
+		v7.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v8 = new SkillDevDb();
+
+		expect(await v8.programs.count()).toBe(0);
+		expect(await v8.program_weeks.count()).toBe(0);
+		expect(await v8.program_sessions.count()).toBe(0);
+		expect(await v8.program_items.count()).toBe(0);
+
+		v8.close();
+	});
+
+	it('leaves the player’s own enrolment and ticks alone', async () => {
+		// The subtree is safe to clear precisely because nothing user-owned is in
+		// it, and because every id in it is derived from the program's, so a
+		// re-seed reproduces each one exactly. A player mid-block keeps their week
+		// and the exercises they had already ticked off.
+		const v7 = new V7Db();
+		await seedV7Content(v7);
+		await v7.table('program_enrolments').add({
+			id: 'enrolment-1',
+			user_id: LOCAL_USER_ID,
+			program_id: 'program-1',
+			started_at: at,
+			started_on: '2026-09-16',
+			completed_at: null,
+			...meta
+		});
+		await v7.table('program_session_logs').add({
+			id: 'log-1',
+			user_id: LOCAL_USER_ID,
+			enrolment_id: 'enrolment-1',
+			program_session_id: 'session-1',
+			local_date: '2026-09-16',
+			completed_item_ids: ['item-1'],
+			completed_at: at,
+			...meta
+		});
+		v7.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v8 = new SkillDevDb();
+
+		const enrolment = await v8.program_enrolments.get('enrolment-1');
+		expect(enrolment).toBeDefined();
+		expect(enrolment!.started_on).toBe('2026-09-16');
+		expect(enrolment!.program_id).toBe('program-1');
+
+		const log = await v8.program_session_logs.get('log-1');
+		expect(log).toBeDefined();
+		expect(log!.program_session_id).toBe('session-1');
+		expect(log!.completed_item_ids).toEqual(['item-1']);
+
+		v8.close();
+	});
+
+	it('leaves the other reference tables alone', async () => {
+		// Only the program subtree changed shape. Drills in particular carry the
+		// player's own edits and hide/show state from the admin library, and must
+		// never be swept up in a content refresh.
+		const v7 = new V7Db();
+		await v7.table('drills').add({
+			id: 'drill-1',
+			slug: 'my-drill',
+			name: 'My drill',
+			category: 'kicking',
+			summary: 's',
+			setup: 's',
+			coaching_points: [],
+			equipment: [],
+			min_players: 1,
+			duration_minutes: 10,
+			difficulty: 1,
+			tracks_reps: 1,
+			target_reps: 10,
+			source: 'custom',
+			active: 0
+		});
+		await v7.table('positions').add({
+			position: 'ruck',
+			group: 'ruck',
+			label: 'Ruck',
+			summary: 's',
+			skill_weights: {},
+			physical_weights: {}
+		});
+		v7.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v8 = new SkillDevDb();
+
+		const drill = await v8.drills.get('drill-1');
+		expect(drill).toBeDefined();
+		expect(drill!.active).toBe(0);
+		expect(drill!.source).toBe('custom');
+		expect(await v8.positions.count()).toBe(1);
+
+		v8.close();
+	});
+});

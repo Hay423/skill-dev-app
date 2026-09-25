@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { repo } from '$lib/data';
+	import { drillTitle } from '$lib/domain/drills';
 	import { SKILL_CATEGORY_LABELS, type Drill } from '$lib/types';
 
 	let drill = $state<Drill | undefined>(undefined);
@@ -30,14 +31,13 @@
 {:else}
 	<header class="mb-4">
 		<a href="/drills" class="text-sm text-surface-600-400">← Drills</a>
-		<h1 class="mt-2 text-2xl font-bold">{drill.name}</h1>
+		<h1 class="mt-2 text-2xl font-bold">{drillTitle(drill)}</h1>
 		<p class="mt-1 text-sm text-surface-600-400">{drill.summary}</p>
+		<!-- The player count lives in the heading now, so it is not repeated here. -->
 		<p class="mt-2 flex flex-wrap gap-2 text-xs text-surface-500">
 			<span>{SKILL_CATEGORY_LABELS[drill.category]}</span>
 			<span aria-hidden="true">·</span>
 			<span>{drill.duration_minutes} min</span>
-			<span aria-hidden="true">·</span>
-			<span>{drill.min_players === 1 ? 'Solo' : `${drill.min_players}+ players`}</span>
 		</p>
 	</header>
 

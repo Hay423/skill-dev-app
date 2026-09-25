@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { repo } from '$lib/data';
+	import { drillTitle } from '$lib/domain/drills';
 	import { drillLimitFor } from '$lib/domain/load-policy';
 	import {
 		describeExclusion,
@@ -115,7 +116,7 @@
 						class="tap-target block rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 active:bg-surface-200-800"
 					>
 						<div class="flex items-start justify-between gap-3">
-							<h3 class="font-semibold">{drill.name}</h3>
+							<h3 class="font-semibold">{drillTitle(drill)}</h3>
 							<span class="shrink-0 text-xs text-surface-500">{drill.duration_minutes} min</span>
 						</div>
 						<p class="mt-1 text-sm text-surface-600-400">{drill.summary}</p>
@@ -138,7 +139,7 @@
 				<ul class="mt-1 space-y-1 pl-1">
 					{#each exclusionGroups as group (group.text)}
 						<li class="text-xs text-surface-500">
-							{group.items.map((d) => d.name).join(', ')} — {group.text}
+							{group.items.map(drillTitle).join(', ')} — {group.text}
 						</li>
 					{/each}
 				</ul>

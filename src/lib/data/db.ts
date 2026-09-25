@@ -271,6 +271,47 @@ export class SkillDevDb extends Dexie {
 					)
 				);
 			});
+
+		// v8 adds heart rate bands to program items, and plyometrics as a third
+		// discipline alongside strength and conditioning.
+		//
+		// The program subtree is cleared rather than patched, so `seedPrograms`
+		// rewrites it from `seed/programs.ts` on the next boot. That is the only
+		// honest option: `hr_pct_min`/`hr_pct_max` are authored content, not
+		// something a migration can compute from a stored row, and leaving the
+		// existing rows in place would mean the same program prescribed different
+		// heart rates on a device that had already seeded it than on a fresh
+		// install.
+		//
+		// Clearing it is safe because none of it is user data and none of the ids
+		// move. Programs carry hard-coded UUIDs and their weeks, sessions and
+		// items are derived from those by `childId`, so a re-seed reproduces every
+		// id exactly. An enrolment points at a `program_id` and a session log at a
+		// `program_session_id` and a list of item ids, and all three still resolve
+		// afterwards — a player mid-block keeps their week and their ticks.
+		//
+		// Enrolments and session logs are therefore deliberately untouched. No
+		// index changes: a heart rate band is read off an item that has already
+		// been fetched, never queried across.
+		this.version(8)
+			.stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			})
+			.upgrade(async (tx) => {
+				await Promise.all(PROGRAM_CONTENT_TABLES.map((table) => tx.table(table).clear()));
+			});
 	}
 }
 
@@ -285,6 +326,21 @@ const OWNED_TABLES = [
 	'player_profile',
 	'program_enrolments',
 	'program_session_logs'
+] as const;
+
+/**
+ * The bundled program subtree: reference content, rewritten from the seed
+ * whenever its shape changes.
+ *
+ * Distinct from `OWNED_TABLES` in exactly the way that matters here — nothing in
+ * these tables belongs to anybody, so clearing them loses nothing and the
+ * seeder puts every row back with the same id it had.
+ */
+const PROGRAM_CONTENT_TABLES = [
+	'programs',
+	'program_weeks',
+	'program_sessions',
+	'program_items'
 ] as const;
 
 /** The v4 age bands, mapped onto their v5 replacements. */
