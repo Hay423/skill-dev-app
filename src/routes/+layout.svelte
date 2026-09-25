@@ -50,7 +50,14 @@
 	});
 </script>
 
-<div class="mx-auto flex min-h-full max-w-lg flex-col">
+<!--
+	`min-h-dvh`, not `min-h-full`. `min-height: 100%` chains up through body and
+	html to the initial containing block, and in an installed iOS PWA that block is
+	shorter than the screen by the bottom safe area — which left the bottom bar
+	floating above the home indicator on every page short enough not to scroll.
+	`dvh` measures the viewport actually on screen, so the column is the screen.
+-->
+<div class="mx-auto flex min-h-dvh max-w-lg flex-col">
 	<TopBar />
 	<!--
 		Horizontal swipes walk the bottom bar's tabs, so the whole row is reachable
@@ -58,7 +65,7 @@
 	-->
 	<main
 		use:swipeTabs={() => page.url.pathname}
-		class="flex-1 px-4 pb-24"
+		class="flex-1 px-4 pb-6"
 		style="padding-top: calc(3rem + var(--inset-top) + 1rem)"
 	>
 		{#await ready}
