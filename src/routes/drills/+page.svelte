@@ -1,6 +1,10 @@
 <script lang="ts">
+	import DrillFilters from '$lib/components/DrillFilters.svelte';
+	import ExcludedDrills from '$lib/components/ExcludedDrills.svelte';
 	import { repo } from '$lib/data';
+	import { describeDrillFilterReason, filterDrills } from '$lib/domain/drill-filter';
 	import { drillTitle } from '$lib/domain/drills';
+	import { drillFilter } from '$lib/filters.svelte';
 	import {
 		SKILL_CATEGORIES,
 		SKILL_CATEGORY_LABELS,
@@ -15,8 +19,23 @@
 		repo.listDrills().then((d) => (drills = d));
 	});
 
-	const visible = $derived(
+	const inCategory = $derived(
 		selected === 'all' ? drills : drills.filter((d) => d.category === selected)
+	);
+
+	/**
+	 * The category chips narrow what the player is browsing; the filter rules
+	 * out what they cannot do right now. Category first, so the "not shown" row
+	 * counts only within the category on screen — a player looking at kicking
+	 * does not need to be told two marking drills need three people.
+	 */
+	const result = $derived(filterDrills(inCategory, drillFilter.current));
+
+	const excluded = $derived(
+		result.excluded.map(({ drill, reason }) => ({
+			drill,
+			text: describeDrillFilterReason(reason)
+		}))
 	);
 
 	// Only offer filters for categories the library actually covers.
@@ -27,8 +46,10 @@
 
 <header class="mb-3">
 	<h1 class="text-2xl font-bold">Drills</h1>
-	<p class="text-sm text-surface-600-400">{visible.length} drills</p>
+	<p class="text-sm text-surface-600-400">{result.kept.length} drills</p>
 </header>
+
+<DrillFilters {drills} />
 
 <div class="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
 	<button
@@ -53,8 +74,16 @@
 	{/each}
 </div>
 
+{#if result.kept.length === 0 && result.excluded.length > 0}
+	<p
+		class="rounded-xl border border-dashed border-surface-200-800 p-6 text-center text-sm text-surface-500"
+	>
+		Nothing here fits what you have right now. Loosen a filter to open the library back up.
+	</p>
+{/if}
+
 <ul class="space-y-2">
-	{#each visible as drill (drill.id)}
+	{#each result.kept as drill (drill.id)}
 		<li>
 			<a
 				href="/drills/{drill.slug}"
@@ -75,3 +104,5 @@
 		</li>
 	{/each}
 </ul>
+
+<ExcludedDrills items={excluded} />

@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { AGE_GROUPS, LOCAL_USER_ID, PLAYER_PROFILE_SCHEMA_VERSION } from '$lib/types';
 import { localDate } from '$lib/util/time';
+import { SEED_DRILLS } from './seed/drills';
 import type {
 	AgeGroup,
 	Drill,
@@ -311,6 +312,59 @@ export class SkillDevDb extends Dexie {
 			})
 			.upgrade(async (tx) => {
 				await Promise.all(PROGRAM_CONTENT_TABLES.map((table) => tx.table(table).clear()));
+			});
+
+		// v9 backfills `equipment_required` onto the bundled drills.
+		//
+		// The field has existed on `Drill` since the Phase 3 eligibility work but
+		// no seed drill ever set it, so it did nothing. It now also drives the
+		// player's own "where am I" filter, which means an empty value is the
+		// difference between a filter that works and one that silently keeps
+		// everything.
+		//
+		// A migration rather than a change to `seedDrills`, because that seeder is
+		// insert-only on purpose: it is what lets admin edits and hidden state
+		// survive a boot, and making it overwrite would undo that for the sake of
+		// one field.
+		//
+		// Only fills a gap. A drill someone already edited keeps whatever they
+		// chose, and custom drills are left alone entirely — there is no seed to
+		// read a value from. The one case this gets wrong is a seed drill an admin
+		// deliberately saved with *no* requirement before this version, since the
+		// form writes `[]` either way and an empty array is indistinguishable from
+		// an unanswered one. That is one tick to put back, against a library-wide
+		// filter that would otherwise do nothing.
+		//
+		// No index changes: a requirement is read off a drill already in hand,
+		// never queried across.
+		this.version(9)
+			.stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			})
+			.upgrade(async (tx) => {
+				const required = new Map(
+					SEED_DRILLS.map((drill) => [drill.id, drill.equipment_required ?? []])
+				);
+				await tx
+					.table('drills')
+					.toCollection()
+					.modify((drill) => {
+						if (drill.equipment_required?.length) return;
+						const value = required.get(drill.id);
+						if (value?.length) drill.equipment_required = [...value];
+					});
 			});
 	}
 }

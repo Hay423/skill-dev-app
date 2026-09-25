@@ -10,7 +10,9 @@ import {
 	type Position,
 	type SkillCategory
 } from '$lib/types';
+import { noDrillFilter } from './drill-filter';
 import {
+	describeDrillExclusion,
 	describeExclusion,
 	isEligible,
 	positionWeights,
@@ -283,7 +285,70 @@ describe('recommendDrills — exclusions', () => {
 		expect(recommended.map((r) => r.drill.name)).toEqual(['Wall kicks']);
 		expect(excluded).toHaveLength(1);
 		expect(excluded[0].drill.name).toBe('Set shots');
-		expect(describeExclusion(excluded[0].reason)).toBe('needs goals');
+		expect(describeDrillExclusion(excluded[0].reason)).toBe('needs goals');
+	});
+});
+
+/**
+ * The player's own filter is an input to the recommendation in the same way the
+ * profile is — a solo player on Today must not be handed a three-person drill
+ * just because it suits their position.
+ */
+describe('recommendDrills — the player’s filter', () => {
+	it('rules out drills the player cannot do right now', () => {
+		const solo = drill('kicking', { name: 'Wall kicks', min_players: 1 });
+		const pair = drill('kicking', { name: 'Lead-up kicks', min_players: 2 });
+
+		const { recommended, excluded } = recommendDrills([solo, pair], {
+			...ctx(),
+			filter: { ...noDrillFilter(), players: 1 }
+		});
+
+		expect(recommended.map((r) => r.drill.name)).toEqual(['Wall kicks']);
+		expect(excluded).toEqual([{ drill: pair, reason: { kind: 'players', needs: 2 } }]);
+	});
+
+	it('changes nothing when no filter is given', () => {
+		const drills = [drill('kicking', { min_players: 3 }), drill('marking', { min_players: 2 })];
+		expect(recommendDrills(drills, ctx()).excluded).toEqual([]);
+	});
+
+	it('leaves the ranking of the survivors alone', () => {
+		const drills = ONE_PER_CATEGORY.map((c) => drill(c));
+		const unfiltered = recommendDrills(drills, ctx({ primary_position: 'small_forward' }));
+		const filtered = recommendDrills(drills, {
+			...ctx({ primary_position: 'small_forward' }),
+			// Every drill is 10 minutes and solo, so this rules nothing out.
+			filter: { ...noDrillFilter(), players: 1, max_minutes: 10 }
+		});
+		expect(filtered.recommended.map((r) => r.drill.id)).toEqual(
+			unfiltered.recommended.map((r) => r.drill.id)
+		);
+	});
+
+	/**
+	 * A drill the profile rules out is ruled out wherever the player is standing,
+	 * so that is the honest reason to show. Telling someone a drill they could
+	 * never do "needs 3 players" sends them looking for a partner they do not need.
+	 */
+	it('reports the profile’s reason ahead of the filter’s when both apply', () => {
+		const gated = drill('goalkicking', { min_players: 3, equipment_required: ['goals'] });
+
+		const { excluded } = recommendDrills([gated], {
+			...ctx({ equipment_access: ['backyard'] }),
+			filter: { ...noDrillFilter(), players: 1 }
+		});
+
+		expect(excluded[0].reason).toEqual({ kind: 'equipment', missing: ['goals'] });
+	});
+
+	it('describes both kinds of exclusion through one function', () => {
+		expect(describeDrillExclusion({ kind: 'equipment', missing: ['goals'] })).toBe('needs goals');
+		expect(describeDrillExclusion({ kind: 'players', needs: 3 })).toBe('needs 3 players');
+		expect(describeDrillExclusion({ kind: 'duration', minutes: 20 })).toBe('takes 20 min');
+		expect(describeDrillExclusion({ kind: 'junior_strength', from: 'u17' })).toBe(
+			'strength training starts at Under 17'
+		);
 	});
 });
 

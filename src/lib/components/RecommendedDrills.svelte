@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { repo } from '$lib/data';
+	import DrillFilters from './DrillFilters.svelte';
+	import ExcludedDrills from './ExcludedDrills.svelte';
+	import { isFilterSet } from '$lib/domain/drill-filter';
 	import { drillTitle } from '$lib/domain/drills';
 	import { drillLimitFor } from '$lib/domain/load-policy';
 	import {
-		describeExclusion,
+		describeDrillExclusion,
 		priorityCategories,
 		recommendDrills,
 		type RecommendationContext
 	} from '$lib/domain/recommend';
+	import { drillFilter } from '$lib/filters.svelte';
 	import {
 		POSITION_LABELS,
 		SKILL_CATEGORY_LABELS,
@@ -44,7 +48,7 @@
 	});
 
 	const context = $derived<RecommendationContext | null>(
-		profile ? { profile, positions, today: localDate() } : null
+		profile ? { profile, positions, today: localDate(), filter: drillFilter.current } : null
 	);
 
 	const shown = $derived(limit ?? drillLimitFor(profile));
@@ -61,21 +65,11 @@
 			: ''
 	);
 
-	/**
-	 * Exclusions are shown, not hidden: a short list should say why it is short.
-	 * Grouped by reason so the row reads "2 not shown — needs goals" rather than
-	 * repeating the same explanation per drill.
-	 */
-	const exclusionGroups = $derived(
-		[
-			...result.excluded
-				.reduce((groups, { drill, reason }) => {
-					const text = describeExclusion(reason);
-					groups.set(text, [...(groups.get(text) ?? []), drill]);
-					return groups;
-				}, new Map<string, Drill[]>())
-				.entries()
-		].map(([text, items]) => ({ text, items }))
+	const excluded = $derived(
+		result.excluded.map(({ drill, reason }) => ({
+			drill,
+			text: describeDrillExclusion(reason)
+		}))
 	);
 </script>
 
@@ -99,12 +93,19 @@
 				&nbsp;· {focus}{/if}
 		</p>
 
+		<DrillFilters {drills} />
+
 		{#if result.recommended.length === 0}
 			<p
 				class="rounded-xl border border-dashed border-surface-200-800 p-6 text-center text-sm text-surface-500"
 			>
-				Every drill needs gear you have not listed. Add what you can train with in your profile to
-				open the library up.
+				{#if isFilterSet(drillFilter.current)}
+					Nothing fits what you have right now. Loosen a filter above, or check what you can train
+					with in your profile.
+				{:else}
+					Every drill needs gear you have not listed. Add what you can train with in your profile to
+					open the library up.
+				{/if}
 			</p>
 		{/if}
 
@@ -130,20 +131,6 @@
 			{/each}
 		</ul>
 
-		{#if exclusionGroups.length > 0}
-			<details class="mt-2">
-				<summary class="tap-target flex items-center text-xs text-surface-500">
-					{result.excluded.length}
-					{result.excluded.length === 1 ? 'drill' : 'drills'} not shown
-				</summary>
-				<ul class="mt-1 space-y-1 pl-1">
-					{#each exclusionGroups as group (group.text)}
-						<li class="text-xs text-surface-500">
-							{group.items.map(drillTitle).join(', ')} — {group.text}
-						</li>
-					{/each}
-				</ul>
-			</details>
-		{/if}
+		<ExcludedDrills items={excluded} />
 	</section>
 {/if}

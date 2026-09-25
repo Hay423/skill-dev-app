@@ -355,6 +355,84 @@ Supersedes nothing; slots in ahead of "Guided sessions" in
     to — the margin rule found a real case in the seed content on its own. No
     console errors in any run.
 
+- **Phase 4e — Drill filters. Done.** The recommendation layer knew who the
+  player _is_; it knew nothing about who is standing next to them. A ranked
+  list that leads with a three-person marking contest is wrong for a player
+  alone in a park, however well it suits their position.
+  - **`domain/drill-filter.ts`** is the new pure core: `DrillFilter`
+    (`players`, `max_minutes`, `equipment`), `matchesFilter`, `filterDrills`,
+    the copy helpers, and the option rows. `null`/`[]` mean unset, never "has
+    nothing" — the same rule the profile already follows, so an untouched
+    filter excludes nothing.
+  - **Deliberately not on `PlayerProfile`.** The profile answers "what can you
+    generally get to?" and syncs; the filter answers "who is with you, this
+    morning, in this park?" and changes every session. It lives in
+    `localStorage` via `src/lib/filters.svelte.ts` — a seam in the same shape as
+    `plan.ts` — which also avoided a Dexie version and a `schema_version` bump
+    for the most volatile value in the app. Read synchronously so the first
+    render is already filtered; validated field by field on read, because a
+    value that outlives its code should degrade to unset rather than hide the
+    library.
+  - **The filter is part of `RecommendationContext`, not a second argument.**
+    It is an input to the recommendation exactly as the profile is, and a caller
+    that forgets to thread it through is a caller that hands a solo player a
+    three-person drill. It runs _after_ `isEligible`, so a drill the profile
+    rules out reports the profile's reason: telling someone a gym drill "needs
+    3 players" sends them looking for a partner they never needed.
+  - **`equipment_required` on a drill means space, not gear.** The field has
+    existed since Phase 3 and no seed drill ever set it, so it did nothing. All
+    twelve now declare the smallest place the drill works in, and
+    `domain/equipment.ts` — where `expandEquipmentAccess` moved to — expands an
+    oval to include a park and a park a backyard. `oval → goals` is still
+    refused: posts are a fixture, not a size. Requirements are AND-ed, so a
+    drill that works against a wall _or_ with a partner declares neither and
+    leaves it to the headcount row.
+  - **Dexie v9** backfills that field onto already-seeded drills. A migration
+    rather than a change to `seedDrills`, because that seeder is insert-only on
+    purpose — making it overwrite would undo admin edits for the sake of one
+    field. It only fills a gap, and leaves custom drills alone.
+  - **Option rows are derived from the library**, the way the category chips
+    already are: no "5 people" chip for a library whose biggest drill needs
+    three.
+  - **The time row is a ladder of caps topped by an open end** — `10 min or
+less`, `15 min or less`, `15+ min`. The longest drill never gets a cap of
+    its own, because a cap that keeps everything cannot be told apart from no
+    cap; it sets the open chip's label instead. `TimeBudget` is therefore
+    `number | 'open' | null`, and `'open'` is deliberately not `null`: it rules
+    nothing out, but "I have plenty of time" is an answer and "I have not said"
+    is not, and the summary line says which.
+  - **The place row is single-select** — you are in one place at a time. That
+    only works because the places nest, which forced a real fix in
+    `domain/equipment.ts`: **goals now imply an oval, a park and a backyard**,
+    and a wall implies a backyard. The asymmetry with `oval → goals` (still
+    refused — posts are a fixture, not a size) is the point; there is nowhere
+    to put posts except a ground. Without it, naming the goals would have cost
+    the player every drill written for the grass around them.
+    `placeOptions` orders the row by size rather than by taxonomy, so each chip
+    to the right opens everything the last one did and more: over the bundled
+    twelve that is backyard 3 → wall 4 → park 9 → goals 11, asserted in
+    `seed.test.ts` so a content change that narrows the ladder fails the build.
+    The wall drill is reachable only from "Wall", correctly — a wall is the one
+    thing open grass does not imply.
+  - The stored key is `…:drill-filter:v2`. The v1 shape had a multi-select place
+    and no open budget, and reading it under the new rules would silently mean
+    something else, so the old key is abandoned rather than migrated — one tap
+    to set again.
+  - Exclusions reuse the established pattern rather than a new one:
+    `describeDrillExclusion` folds the profile's reasons and the filter's into
+    one union, and `ExcludedDrills.svelte` renders the "n drills not shown" row
+    for both the library and Today. The grouping moved out of the component into
+    `groupExcludedDrills` — components render, they don't calculate.
+  - The CSV importer now reads `position_tags` and `equipment_required` (JSON
+    already did) and **validates both against the enums** instead of casting. A
+    typo'd requirement used to be inert; it now hides a drill from everybody.
+  - Scope, as agreed: `/drills` and the Today recommendations. `plan.ts`'s
+    rest-day skills suggestions are deliberately untouched.
+  - _Not verified in a browser — this session had no browser automation
+    available, unlike Phases 1–4d. `npm run check`, 327 unit tests and
+    `npm run build` all pass, but the filter panel, the chip rows and the
+    v8→v9 upgrade on a real IndexedDB have not been driven by hand._
+
 - **Phases 2, 5–6** have not started — they need the open questions below
   answered, and Phase 2 specifically needs your content files. Note for
   whoever picks up Phase 2: the `exercises`/`programs`/`program_weeks`/

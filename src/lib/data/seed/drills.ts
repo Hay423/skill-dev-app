@@ -8,6 +8,18 @@ import type { Drill } from '$lib/types';
  * `active`/`source` are runtime state owned by the admin library (see
  * `seedDrills` in `../index.ts`), not content, so they are deliberately omitted
  * here rather than hard-coded on every entry.
+ *
+ * `equipment` is display copy — what to bring. `equipment_required` is the
+ * structured version the eligibility rules and the player's filter read, and on
+ * a drill it almost always names **space rather than gear**: the smallest place
+ * the drill actually works in. `domain/equipment.ts` expands an oval to include
+ * a park and a park a backyard, so the value here is a floor, the same way
+ * `min_players` is. A football is not listed because every drill needs one, and
+ * a requirement everything shares filters nothing.
+ *
+ * Requirements are AND-ed, so only genuinely mandatory ones belong here. A
+ * drill that works against a wall *or* with a partner declares neither — it
+ * declares the space it needs and leaves the rest to the headcount filter.
  */
 export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 	{
@@ -24,6 +36,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Same run-up every rep, even at short range'
 		],
 		equipment: ['Football', 'Wall or fence'],
+		equipment_required: ['wall'],
 		min_players: 1,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -43,6 +56,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Reset to the shortest rung whenever two in a row miss'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['park'],
 		min_players: 1,
 		duration_minutes: 15,
 		difficulty: 2,
@@ -62,6 +76,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Flat, penetrating trajectory so the target runs onto it'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['park'],
 		min_players: 2,
 		duration_minutes: 15,
 		difficulty: 2,
@@ -82,6 +97,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Score only the shots that go through — near misses are misses'
 		],
 		equipment: ['Football', 'Goals', 'Cones'],
+		equipment_required: ['goals'],
 		min_players: 1,
 		duration_minutes: 20,
 		difficulty: 2,
@@ -101,6 +117,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Shorten the run — balance beats power from the pocket'
 		],
 		equipment: ['Football', 'Goals'],
+		equipment_required: ['goals'],
 		min_players: 1,
 		duration_minutes: 15,
 		difficulty: 3,
@@ -120,6 +137,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Step into the handball with the opposite foot'
 		],
 		equipment: ['Football'],
+		equipment_required: ['backyard'],
 		min_players: 1,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -139,6 +157,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Release to the runner in front, on their outside shoulder'
 		],
 		equipment: ['Football', 'Tackle bag'],
+		equipment_required: ['park'],
 		min_players: 3,
 		duration_minutes: 15,
 		difficulty: 3,
@@ -158,6 +177,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Absorb into the chest and secure before turning'
 		],
 		equipment: ['Football'],
+		equipment_required: ['park'],
 		min_players: 2,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -177,6 +197,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Strong hands above the head, eyes on the ball through contact'
 		],
 		equipment: ['Football'],
+		equipment_required: ['park'],
 		min_players: 3,
 		duration_minutes: 15,
 		difficulty: 3,
@@ -196,6 +217,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Do not break stride — gather and go'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['park'],
 		min_players: 2,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -215,6 +237,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Drive through the hips, take them to ground safely'
 		],
 		equipment: ['Tackle bag'],
+		equipment_required: ['backyard'],
 		min_players: 2,
 		duration_minutes: 15,
 		difficulty: 2,
@@ -234,6 +257,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Accelerate out of the change of direction, not into it'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['backyard'],
 		min_players: 2,
 		duration_minutes: 10,
 		difficulty: 2,

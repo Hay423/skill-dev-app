@@ -1,4 +1,12 @@
-import { SKILL_CATEGORIES, type Difficulty, type SkillCategory } from '$lib/types';
+import {
+	EQUIPMENT_ACCESS,
+	POSITIONS,
+	SKILL_CATEGORIES,
+	type Difficulty,
+	type EquipmentAccess,
+	type Position,
+	type SkillCategory
+} from '$lib/types';
 import type { DrillInput } from '$lib/data/repo';
 
 export interface DrillImportError {
@@ -102,7 +110,9 @@ export function parseDrillsCsv(text: string): DrillImportResult {
 				duration_minutes: cell('duration_minutes'),
 				difficulty: cell('difficulty'),
 				tracks_reps: cell('tracks_reps'),
-				target_reps: cell('target_reps')
+				target_reps: cell('target_reps'),
+				position_tags: splitList(cell('position_tags')),
+				equipment_required: splitList(cell('equipment_required'))
 			},
 			row
 		);
@@ -227,6 +237,26 @@ function toDrillInput(
 		targetReps = n;
 	}
 
+	// Validated rather than cast, because both of these now change what the
+	// player sees rather than merely being carried around: a typo'd position tag
+	// ranks a drill for nobody, and a typo'd requirement hides it from everybody.
+	// A silent cast turns either into a content bug nobody can see in the UI.
+	const positionTags = raw.position_tags ?? [];
+	const badPosition = positionTags.find((p) => !(POSITIONS as readonly string[]).includes(p));
+	if (badPosition !== undefined) {
+		return fail(`position_tags '${badPosition}' is not one of: ${POSITIONS.join(', ')}`);
+	}
+
+	const equipmentRequired = raw.equipment_required ?? [];
+	const badEquipment = equipmentRequired.find(
+		(e) => !(EQUIPMENT_ACCESS as readonly string[]).includes(e)
+	);
+	if (badEquipment !== undefined) {
+		return fail(
+			`equipment_required '${badEquipment}' is not one of: ${EQUIPMENT_ACCESS.join(', ')}`
+		);
+	}
+
 	return {
 		drill: {
 			slug: raw.slug?.trim() || undefined,
@@ -241,8 +271,8 @@ function toDrillInput(
 			difficulty: difficultyNum as Difficulty,
 			tracks_reps: tracksReps,
 			target_reps: targetReps,
-			position_tags: (raw.position_tags ?? []) as DrillInput['position_tags'],
-			equipment_required: (raw.equipment_required ?? []) as DrillInput['equipment_required']
+			position_tags: positionTags as Position[],
+			equipment_required: equipmentRequired as EquipmentAccess[]
 		}
 	};
 }

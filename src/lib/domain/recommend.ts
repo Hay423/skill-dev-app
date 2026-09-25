@@ -19,7 +19,23 @@ import {
 	type SkillCategory,
 	type TrainingProgram
 } from '$lib/types';
+import {
+	describeDrillFilterReason,
+	matchesFilter,
+	noDrillFilter,
+	type DrillFilter,
+	type DrillFilterReason
+} from './drill-filter';
+import { expandEquipmentAccess } from './equipment';
 import { describeProgramCaution, isMasters, MASTERS_COMFORTABLE_SESSIONS } from './load-policy';
+import { formatList } from './text';
+
+/**
+ * Re-exported so callers that already reach for eligibility keep one import.
+ * The implementation moved to `equipment.ts` when the player's own filter
+ * started needing it too — see the containment rules there.
+ */
+export { expandEquipmentAccess };
 
 /**
  * Everything the recommendation layer is allowed to see. Pure input — no
@@ -31,6 +47,17 @@ export interface RecommendationContext {
 	/** Position reference content. An empty list degrades scoring, never breaks it. */
 	positions: PositionProfile[];
 	today: IsoDate;
+	/**
+	 * What the player has in front of them right now — who is with them, how
+	 * long they have, where they are. Optional because most callers have no
+	 * opinion; omitted, it constrains nothing.
+	 *
+	 * Deliberately part of the context rather than a second argument to
+	 * `recommendDrills`: it is an input to the recommendation in exactly the way
+	 * the profile is, and a caller that forgets to thread it through is a caller
+	 * that hands a solo player a three-person drill.
+	 */
+	filter?: DrillFilter;
 }
 
 /**
@@ -151,29 +178,6 @@ function ageRank(group: AgeGroup): number {
 }
 
 /**
- * Kit that contains other kit. A full gym has dumbbells and bands in it, so a
- * player who ticked only "Full gym" must not be excluded from a program written
- * for home weights.
- *
- * Deliberately only this one entry. An oval arguably implies goals and open
- * grass, but "arguably" is not good enough to hide content on: the rest of the
- * vocabulary describes places rather than equipment, and a player who has an
- * oval but no posts is a real case.
- */
-const EQUIPMENT_IMPLIES: Partial<Record<EquipmentAccess, EquipmentAccess[]>> = {
-	full_gym: ['home_weights', 'bands']
-};
-
-/** What a player can actually train with, including the kit their access implies. */
-export function expandEquipmentAccess(access: EquipmentAccess[]): Set<EquipmentAccess> {
-	const owned = new Set(access);
-	for (const item of access) {
-		for (const implied of EQUIPMENT_IMPLIES[item] ?? []) owned.add(implied);
-	}
-	return owned;
-}
-
-/**
  * A hard filter, run before any scoring: age gating and equipment access.
  * Scoring only ever ranks what survives this.
  *
@@ -228,9 +232,25 @@ export function describeExclusion(reason: ExclusionReason): string {
 	}
 }
 
-function formatList(items: string[]): string {
-	if (items.length <= 1) return items[0] ?? '';
-	return `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
+/**
+ * Everything that can keep a drill off the list: the profile-driven rules the
+ * player cannot override, and the filter they set themselves.
+ *
+ * One union because the UI shows them in one disclosure. Keeping them apart in
+ * the type would only push the join into every component.
+ */
+export type DrillExclusionReason = ExclusionReason | DrillFilterReason;
+
+/** Sentence fragment for either kind of exclusion. */
+export function describeDrillExclusion(reason: DrillExclusionReason): string {
+	switch (reason.kind) {
+		case 'players':
+		case 'duration':
+		case 'place':
+			return describeDrillFilterReason(reason);
+		default:
+			return describeExclusion(reason);
+	}
 }
 
 export interface ScoredDrill {
@@ -244,7 +264,7 @@ export interface ScoredDrill {
 export interface DrillRecommendations {
 	recommended: ScoredDrill[];
 	/** Shown, not hidden — a collapsed "3 not shown" row that explains itself. */
-	excluded: Array<{ drill: Drill; reason: ExclusionReason }>;
+	excluded: Array<{ drill: Drill; reason: DrillExclusionReason }>;
 }
 
 /**
@@ -345,6 +365,12 @@ function explain(drill: Drill, ctx: RecommendationContext, weights: BlendedWeigh
  * them, so the UI can account for a short list instead of just looking empty.
  * Hidden drills (`active: 0`) are not exclusions — they are gone from the
  * library entirely and normally never reach here.
+ *
+ * The player's own filter runs after eligibility, not before it, and the order
+ * is deliberate. A drill the profile rules out is ruled out whatever the player
+ * is standing in front of, so that is the honest reason to show; telling
+ * someone a gym program "needs 3 players" when they could not have done it
+ * anyway sends them looking for a training partner they do not need.
  */
 export function recommendDrills(
 	drills: Drill[],
@@ -352,6 +378,7 @@ export function recommendDrills(
 	limit?: number
 ): DrillRecommendations {
 	const weights = positionWeights(ctx);
+	const filter = ctx.filter ?? noDrillFilter();
 	const recommended: ScoredDrill[] = [];
 	const excluded: DrillRecommendations['excluded'] = [];
 
@@ -360,6 +387,11 @@ export function recommendDrills(
 		const eligibility = isEligible(drill, ctx);
 		if (!eligibility.eligible) {
 			excluded.push({ drill, reason: eligibility.reason });
+			continue;
+		}
+		const fits = matchesFilter(drill, filter);
+		if (!fits.matches) {
+			excluded.push({ drill, reason: fits.reason });
 			continue;
 		}
 		const score = SCORERS.reduce(

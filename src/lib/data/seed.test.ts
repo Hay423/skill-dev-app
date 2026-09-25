@@ -84,3 +84,87 @@ describe('seedExercises and seedPrograms', () => {
 		}
 	});
 });
+
+/**
+ * `equipment_required` is a content field with a UI consequence: it is what the
+ * "where are you?" filter and the profile's eligibility rules both read. An
+ * unset one silently keeps a drill in every list, which looks like the filter is
+ * broken rather than like the content is thin, so the seed library is held to
+ * declaring one.
+ */
+describe('the bundled drill library', () => {
+	it('gives every drill a valid space requirement', async () => {
+		const { SEED_DRILLS } = await import('./seed/drills');
+		const { EQUIPMENT_ACCESS } = await import('$lib/types');
+
+		for (const drill of SEED_DRILLS) {
+			expect(drill.equipment_required, `${drill.slug} declares no requirement`).toBeDefined();
+			expect(
+				drill.equipment_required!.length,
+				`${drill.slug} declares an empty one`
+			).toBeGreaterThan(0);
+			for (const item of drill.equipment_required!) {
+				expect(EQUIPMENT_ACCESS, `${drill.slug} requires '${item}'`).toContain(item);
+			}
+		}
+	});
+
+	/**
+	 * A football is not a filter. A requirement every drill shares rules nothing
+	 * out and only makes the "where are you?" row longer.
+	 */
+	it('does not put a requirement on every drill that every drill shares', async () => {
+		const { SEED_DRILLS } = await import('./seed/drills');
+		const counts = new Map<string, number>();
+		for (const drill of SEED_DRILLS) {
+			for (const item of drill.equipment_required ?? []) {
+				counts.set(item, (counts.get(item) ?? 0) + 1);
+			}
+		}
+		for (const [item, count] of counts) {
+			expect(count, `every drill requires '${item}'`).toBeLessThan(SEED_DRILLS.length);
+		}
+	});
+});
+
+/**
+ * The place row is single-select, so each chip has to stand on its own: a
+ * player names where they are and gets everything that runs there. The
+ * containment chain in `domain/equipment.ts` is what makes that work, and it
+ * only works if the bundled content is authored along the same ladder.
+ */
+describe('the place ladder over the bundled drills', () => {
+	it('widens as the place gets bigger, and never empties', async () => {
+		const { SEED_DRILLS } = await import('./seed/drills');
+		const { filterDrills, noDrillFilter, placeOptions } = await import('$lib/domain/drill-filter');
+
+		const library = SEED_DRILLS.map((d) => ({ ...d, active: 1 as const, source: 'seed' as const }));
+		const counts = placeOptions(library).map((place) => ({
+			place,
+			kept: filterDrills(library, { ...noDrillFilter(), place }).kept.length
+		}));
+
+		// Every chip on the row leaves the player something to do.
+		for (const { place, kept } of counts) {
+			expect(kept, `'${place}' leaves nothing`).toBeGreaterThan(0);
+		}
+
+		// `placeOptions` orders smallest to largest, so the counts must not fall.
+		// A ladder that narrows as you name a bigger place is a content bug.
+		const spaces = counts.filter(({ place }) => place !== 'wall');
+		for (let i = 1; i < spaces.length; i++) {
+			expect(
+				spaces[i].kept,
+				`'${spaces[i].place}' shows fewer than '${spaces[i - 1].place}'`
+			).toBeGreaterThanOrEqual(spaces[i - 1].kept);
+		}
+
+		// Recorded so a content change that shifts the ladder shows up as a diff.
+		expect(Object.fromEntries(counts.map((c) => [c.place, c.kept]))).toEqual({
+			backyard: 3,
+			wall: 4,
+			park: 9,
+			goals: 11
+		});
+	});
+});

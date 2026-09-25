@@ -763,3 +763,127 @@ describe('v7 -> v8 Dexie migration', () => {
 		v8.close();
 	});
 });
+
+describe('v8 -> v9 Dexie migration', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	/** The v8 schema, before the bundled drills declared the space they need. */
+	class V8Db extends Dexie {
+		constructor() {
+			super('skill-dev');
+			this.version(8).stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			});
+		}
+	}
+
+	/** A stored drill as v8 wrote it: seeded, and carrying no structured requirement. */
+	function storedDrill(overrides: Record<string, unknown> = {}) {
+		return {
+			id: 'unseeded',
+			slug: 'unseeded',
+			name: 'Hand-written drill',
+			category: 'kicking',
+			summary: '',
+			setup: '',
+			coaching_points: [],
+			equipment: [],
+			min_players: 1,
+			duration_minutes: 10,
+			difficulty: 1,
+			tracks_reps: true,
+			target_reps: 20,
+			source: 'seed',
+			active: 1,
+			...overrides
+		};
+	}
+
+	it('backfills the bundled requirement onto a seed drill that has none', async () => {
+		const { SEED_DRILLS } = await import('./seed/drills');
+		const wallDrill = SEED_DRILLS.find((d) => d.slug === 'wall-kick-repeaters')!;
+
+		const v8 = new V8Db();
+		await v8.open();
+		await v8.table('drills').add(storedDrill({ id: wallDrill.id, slug: wallDrill.slug }));
+		v8.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v9 = new SkillDevDb();
+		await expect(v9.drills.get(wallDrill.id)).resolves.toMatchObject({
+			equipment_required: ['wall']
+		});
+		v9.close();
+	});
+
+	it('never overwrites a requirement someone has already chosen', async () => {
+		const { SEED_DRILLS } = await import('./seed/drills');
+		const wallDrill = SEED_DRILLS.find((d) => d.slug === 'wall-kick-repeaters')!;
+
+		const v8 = new V8Db();
+		await v8.open();
+		await v8
+			.table('drills')
+			.add(
+				storedDrill({ id: wallDrill.id, slug: wallDrill.slug, equipment_required: ['backyard'] })
+			);
+		v8.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v9 = new SkillDevDb();
+		await expect(v9.drills.get(wallDrill.id)).resolves.toMatchObject({
+			equipment_required: ['backyard']
+		});
+		v9.close();
+	});
+
+	it('leaves a custom drill alone — there is no seed to read a value from', async () => {
+		const v8 = new V8Db();
+		await v8.open();
+		await v8
+			.table('drills')
+			.add(storedDrill({ id: 'custom-1', slug: 'custom-1', source: 'custom' }));
+		v8.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v9 = new SkillDevDb();
+		const drill = await v9.drills.get('custom-1');
+		expect(drill!.equipment_required).toBeUndefined();
+		v9.close();
+	});
+
+	it('leaves the rest of the drill row untouched, including hidden state', async () => {
+		const { SEED_DRILLS } = await import('./seed/drills');
+		const seed = SEED_DRILLS.find((d) => d.slug === 'set-shot-routine')!;
+
+		const v8 = new V8Db();
+		await v8.open();
+		await v8
+			.table('drills')
+			.add(storedDrill({ id: seed.id, slug: seed.slug, name: 'Locally renamed', active: 0 }));
+		v8.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v9 = new SkillDevDb();
+		await expect(v9.drills.get(seed.id)).resolves.toMatchObject({
+			name: 'Locally renamed',
+			active: 0,
+			equipment_required: ['goals']
+		});
+		v9.close();
+	});
+});
