@@ -678,5 +678,298 @@ export const SEED_EXERCISES: Exercise[] = [
 		accessory_dose: { sets: 3, reps: '4', rest_seconds: 150 },
 		regression_slug: 'drop-landing',
 		progression_slug: null
+	},
+	// --- Warm-up and cool-down. Range-of-motion work stamped into sessions by
+	// the routines in `routines.ts`, never prescribed as main work. Bodyweight
+	// and open to every age: a warm-up is the last thing to withhold from a
+	// junior. ---
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d39',
+		slug: 'leg-swings',
+		name: 'Leg swings',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hip', 'groin'],
+		coaching_points: [
+			'Hold something steady and swing one leg front to back, then across the body',
+			'Start small and let each swing get a little bigger',
+			'Tall through the standing leg — the hip moves, the back does not'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d3a',
+		slug: 'walking-knee-hug',
+		name: 'Walking knee hug',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hip', 'knee'],
+		coaching_points: [
+			'Step, pull one knee to the chest and rise onto the toes of the standing foot',
+			'Hold for a beat, then step through and swap legs',
+			'Stand tall — pull the knee up to you rather than bending down to it'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d3b',
+		slug: 'walking-hip-openers',
+		name: 'Walking hip openers',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hip', 'groin'],
+		coaching_points: [
+			'Lift the knee to the front and circle it out to the side, like stepping over a gate',
+			'Then reverse it: knee out to the side and round to the front',
+			'Slow and wide — this is the groin you will be asking to change direction later'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d3c',
+		slug: 'worlds-greatest-stretch',
+		name: 'World’s greatest stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hip', 'groin', 'back'],
+		coaching_points: [
+			'Step into a long lunge and put the same-side hand down inside the front foot',
+			'Drop the elbow towards the instep, then rotate and reach that arm to the sky',
+			'Back knee off the ground, and follow the hand with your eyes'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d3d',
+		slug: 'inchworm',
+		name: 'Inchworm',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility', 'robustness'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hamstring', 'shoulder', 'back'],
+		coaching_points: [
+			'Fold forward, walk the hands out to a push-up position, then walk the feet up to them',
+			'Legs as straight as the hamstrings allow — bend the knees rather than force it',
+			'Keep the hips level when the hands are out front'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d3e',
+		slug: 'arm-circles',
+		name: 'Arm circles',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['shoulder'],
+		coaching_points: [
+			'Arms out to the side, small circles growing into big ones',
+			'Forwards, then backwards',
+			'Keep the shoulders down away from the ears'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d3f',
+		slug: 'open-book',
+		name: 'Open book',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['back', 'shoulder'],
+		coaching_points: [
+			'Lie on your side, knees bent and stacked, arms out straight in front',
+			'Open the top arm across to the other side, following it with your eyes',
+			'Let the upper back turn; the knees stay together on the ground'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d40',
+		slug: 'carioca',
+		name: 'Carioca',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility', 'agility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['groin', 'knee'],
+		coaching_points: [
+			'Move sideways, the trailing leg crossing in front then behind',
+			'Let the hips turn while the shoulders stay square',
+			'Lead with both sides — one length each way'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d41',
+		slug: 'calf-stretch',
+		name: 'Calf stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['ankle'],
+		coaching_points: [
+			'Hands on a wall, post or fence, one foot back with the heel pressed down',
+			'Straight back knee for the calf, then bend it slightly for the lower calf and Achilles',
+			'Ease into it — a stretch, not a pain'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d42',
+		slug: 'hamstring-stretch',
+		name: 'Hamstring stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hamstring', 'back'],
+		coaching_points: [
+			'Lie on your back and raise one straight leg, hands behind the thigh',
+			'Draw it towards you until you feel the back of the leg — then stop there',
+			'The other leg stays long on the ground'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d43',
+		slug: 'quad-stretch',
+		name: 'Quad stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['quad', 'knee'],
+		coaching_points: [
+			'Stand on one leg and hold the other ankle behind you',
+			'Knees together and hips pushed slightly forward',
+			'Hold onto something if the balance is the hard part'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d44',
+		slug: 'hip-flexor-stretch',
+		name: 'Kneeling hip flexor stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hip', 'knee'],
+		coaching_points: [
+			'Half-kneel, back knee on the ground and front foot flat',
+			'Tuck the tail under and squeeze the glute of the back leg, then shift forward a little',
+			'You should feel it across the front of the back hip, not in the lower back'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d45',
+		slug: 'glute-stretch',
+		name: 'Figure-four glute stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['hip', 'back'],
+		coaching_points: [
+			'Lie on your back and cross one ankle over the opposite knee',
+			'Pull the bottom thigh towards your chest',
+			'Keep the head and shoulders relaxed on the ground'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d46',
+		slug: 'groin-stretch',
+		name: 'Butterfly groin stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['groin', 'hip'],
+		coaching_points: [
+			'Sit tall with the soles of the feet together',
+			'Let the knees drop towards the ground — elbows can press them gently',
+			'Tall through the spine rather than rounding over'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d47',
+		slug: 'chest-stretch',
+		name: 'Chest stretch',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['shoulder'],
+		coaching_points: [
+			'Forearm flat against a post or a doorway, elbow at shoulder height',
+			'Turn the chest slowly away from the arm',
+			'Hold both sides'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d48',
+		slug: 'childs-pose',
+		name: 'Child’s pose',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: ['back', 'knee'],
+		coaching_points: [
+			'Kneel, sit back onto the heels and reach the arms long in front',
+			'Walk the hands to one side, then the other, to find the lats',
+			'Breathe into the back of the ribs'
+		],
+		regression_slug: null,
+		progression_slug: null
+	},
+	{
+		id: '2d7e5b14-8c3a-4d62-9e05-1f2a3b4c5d49',
+		slug: 'recovery-breathing',
+		name: 'Recovery breathing',
+		movement_pattern: 'mobility',
+		primary_qualities: ['mobility'],
+		equipment_required: [],
+		min_age_group: 'u11',
+		contraindicated_regions: [],
+		coaching_points: [
+			'Lie on your back, knees bent, one hand on the belly',
+			'In through the nose for four, out through the mouth for six',
+			'The long breath out is what brings the heart rate down'
+		],
+		regression_slug: null,
+		progression_slug: null
 	}
 ];

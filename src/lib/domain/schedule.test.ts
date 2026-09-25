@@ -108,12 +108,17 @@ function makePlan(
 				day_index: d,
 				name: `${id} session ${d}`,
 				type: discipline === 'strength' ? 'strength' : 'running',
-				duration_minutes: 45
+				duration_minutes: 45,
+				warm_up_name: null,
+				warm_up_minutes: null,
+				cool_down_name: null,
+				cool_down_minutes: null
 			});
 			items.push({
 				id: `${sid}-i1`,
 				session_id: sid,
 				order: 1,
+				section: 'main',
 				exercise_id: 'e1',
 				sets: 3,
 				reps: '5',

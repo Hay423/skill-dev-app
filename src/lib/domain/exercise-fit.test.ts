@@ -68,6 +68,7 @@ function item(overrides: Partial<ProgramItem> = {}): ProgramItem {
 		id: 'item-1',
 		session_id: 'session-1',
 		order: 1,
+		section: 'main',
 		exercise_id: null,
 		sets: 3,
 		reps: '5',
@@ -234,6 +235,90 @@ describe('tailorSession, substitution', () => {
 			session_id: 's1'
 		});
 		expect(result.substitutions.has('i2')).toBe(false);
+	});
+});
+
+describe('tailorSession, around a warm-up and cool-down', () => {
+	it('protects the first lift of the main work, not the first item of the warm-up', () => {
+		// With a warm-up in front, the opening lift is no longer order 1 — it is
+		// still the session, and still never swapped.
+		const warmUp = exercise({ id: 'warm', movement_pattern: 'squat' });
+		const opener = exercise({ id: 'opener', movement_pattern: 'lunge', primary_qualities: [] });
+		const rucky = exercise({
+			id: 'ruck-lunge',
+			movement_pattern: 'lunge',
+			primary_qualities: ['power', 'robustness', 'max_strength']
+		});
+		const result = tailorSession({
+			program: program(),
+			items: [
+				item({ id: 'w1', order: 1, section: 'warm_up', exercise_id: warmUp.id }),
+				item({ id: 'i1', order: 2, exercise_id: opener.id })
+			],
+			exercises: [warmUp, opener, rucky],
+			ctx: ctx({ primary_position: 'ruck' }),
+			session_type: 'strength',
+			session_id: 's1'
+		});
+		expect(result.substitutions.size).toBe(0);
+	});
+
+	it('never substitutes a warm-up or cool-down item', () => {
+		const anchor = exercise({ id: 'anchor', movement_pattern: 'squat' });
+		const generic = exercise({ id: 'generic', movement_pattern: 'lunge', primary_qualities: [] });
+		const rucky = exercise({
+			id: 'ruck-lunge',
+			movement_pattern: 'lunge',
+			primary_qualities: ['power', 'robustness', 'max_strength']
+		});
+		const result = tailorSession({
+			program: program(),
+			items: [
+				item({ id: 'i1', order: 1, exercise_id: anchor.id }),
+				item({ id: 'c1', order: 2, section: 'cool_down', exercise_id: generic.id })
+			],
+			exercises: [anchor, generic, rucky],
+			ctx: ctx({ primary_position: 'ruck' }),
+			session_type: 'strength',
+			session_id: 's1'
+		});
+		expect(result.substitutions.has('c1')).toBe(false);
+	});
+
+	it('does not count a warm-up squat as the session already training squats', () => {
+		const squat = SEED_EXERCISES.find((e) => e.slug === 'bodyweight-squat')!;
+		const press = SEED_EXERCISES.find((e) => e.slug === 'barbell-bench-press')!;
+		const tailor = (items: ProgramItem[]) =>
+			tailorSession({
+				program: program(),
+				items,
+				exercises: SEED_EXERCISES,
+				ctx: ctx({ primary_position: 'ruck' }),
+				session_type: 'strength',
+				session_id: 's1'
+			});
+		const withWarmUp = tailor([
+			item({ id: 'w1', order: 1, section: 'warm_up', exercise_id: squat.id }),
+			item({ id: 'i1', order: 2, exercise_id: press.id })
+		]);
+		const without = tailor([item({ id: 'i1', order: 1, exercise_id: press.id })]);
+		expect(withWarmUp.extras.map((e) => e.exercise.id)).toEqual(
+			without.extras.map((e) => e.exercise.id)
+		);
+	});
+
+	it('never offers a stretch as position work', () => {
+		for (const position of ['ruck', 'small_forward', 'key_defender'] as const) {
+			const result = tailorSession({
+				program: program(),
+				items: [],
+				exercises: SEED_EXERCISES,
+				ctx: ctx({ primary_position: position }),
+				session_type: 'strength',
+				session_id: 's1'
+			});
+			expect(result.extras.every((e) => e.exercise.movement_pattern !== 'mobility')).toBe(true);
+		}
 	});
 });
 

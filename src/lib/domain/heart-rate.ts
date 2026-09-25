@@ -201,6 +201,14 @@ export function hrPrescriptionFor(input: HrInput): HrPrescription {
 			? { min_pct: item.hr_pct_min, max_pct: item.hr_pct_max }
 			: null;
 
+	// Warm-up and cool-down: only the easy cardio carries a band, and it holds
+	// still across the block — the week scales the session, not the jog before
+	// it. A squat in a warm-up is not a working set, so it gets no recovery
+	// threshold either.
+	if (item.section !== 'main') {
+		return authored ? { kind: 'work', band: authored } : { kind: 'none' };
+	}
+
 	if (authored) return { kind: 'work', band: scaleBand(authored, week, adjust) };
 
 	if (exercise !== null) {

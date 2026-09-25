@@ -19,6 +19,7 @@ function item(overrides: Partial<ProgramItem> = {}): ProgramItem {
 		id: 'item-1',
 		session_id: 'session-1',
 		order: 1,
+		section: 'main',
 		exercise_id: null,
 		sets: null,
 		reps: null,
@@ -56,6 +57,10 @@ function session(overrides: Partial<ProgramSession> = {}): ProgramSession {
 		name: 'Lower strength',
 		type: 'strength',
 		duration_minutes: 45,
+		warm_up_name: null,
+		warm_up_minutes: null,
+		cool_down_name: null,
+		cool_down_minutes: null,
 		...overrides
 	};
 }
@@ -259,5 +264,34 @@ describe('hasScaledPrescription', () => {
 		expect(hasScaledPrescription([item({ sets: 3, reps: '30 s hold' })])).toBe(false);
 		expect(hasScaledPrescription([item({ sets: 3, reps: '5', rpe: 7 })])).toBe(true);
 		expect(hasScaledPrescription([item({ reps_count: 4, distance_m: 100 })])).toBe(true);
+	});
+});
+
+describe('warm-up and cool-down items', () => {
+	it('are never scaled by the week, in either direction', () => {
+		const jog = item({ section: 'warm_up', work_seconds: 240 });
+		const buildUps = item({ section: 'warm_up', reps_count: 3, distance_m: 40 });
+		for (const intensity_modifier of [0.8, 1.15]) {
+			const w = week({ intensity_modifier });
+			expect(scaledWorkSeconds(jog, w)).toBe(240);
+			expect(scaledRepsCount(buildUps, w)).toBe(3);
+			expect(describePrescription(buildUps, w)).toBe('3 × 40 m');
+		}
+	});
+
+	it('are not scaled by the masters adjustment either', () => {
+		const jog = item({ section: 'cool_down', work_seconds: 180 });
+		expect(scaledWorkSeconds(jog, week(), 0.85)).toBe(180);
+	});
+
+	it('do not make a session claim the week adjusted it', () => {
+		// The note under a session says loads include the week's change. A jog in
+		// the warm-up must not be the thing that switches it on.
+		expect(
+			hasScaledPrescription([
+				item({ section: 'warm_up', work_seconds: 240, hr_pct_min: 55, hr_pct_max: 65 }),
+				item({ sets: 3, reps: '30 s hold' })
+			])
+		).toBe(false);
 	});
 });

@@ -55,6 +55,7 @@ function item(over: Partial<ProgramItem> = {}): ProgramItem {
 		id: 'i1',
 		session_id: 's1',
 		order: 1,
+		section: 'main',
 		exercise_id: null,
 		sets: null,
 		reps: null,
@@ -399,7 +400,8 @@ describe('seed content prescribes heart rate honestly', () => {
 
 	it('gives every prescribed exercise a line or a considered silence', () => {
 		// Nothing should fall through to `kind: 'none'` by accident — only core
-		// work, which genuinely has no heart rate worth printing.
+		// work, which genuinely has no heart rate worth printing, and the drills
+		// and stretches of a warm-up or cool-down, which are not working sets.
 		for (const plan of SEED_PROGRAM_PLANS) {
 			for (const it_ of plan.items) {
 				const ex = it_.exercise_id ? (byId.get(it_.exercise_id) ?? null) : null;
@@ -408,7 +410,7 @@ describe('seed content prescribes heart rate honestly', () => {
 					exercise: ex,
 					session_type: 'strength'
 				});
-				if (result.kind === 'none') {
+				if (result.kind === 'none' && it_.section === 'main') {
 					expect(ex?.movement_pattern, `${plan.program.slug} item ${it_.order}`).toBe('core');
 				}
 			}

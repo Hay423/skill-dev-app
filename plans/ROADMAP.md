@@ -50,6 +50,14 @@ prescription:
   supervised test to exhaustion. Resistance work reads a between-sets recovery
   threshold instead of a work band, and core work reads nothing.
 
+- **Warm-ups and cool-downs** wrap every gym, running and jumping session.
+  They are reusable routines in `data/seed/routines.ts`, stamped into each
+  session's items as `section: 'warm_up' | 'cool_down'` at seed time and chosen
+  from the main work by `routineFocus` in `domain/routines.ts` (gym lower/upper,
+  easy/fast running, jumping). They count towards a session being done, but the
+  week never scales them and position tailoring never touches them. A session
+  spec can name a different routine, or `null` for none.
+
 Open: no way to enter a **measured** maximum heart rate. The estimate is within
 roughly ±10 bpm, which is fine for a zone and wrong for a player who has been
 tested. An optional `max_hr` on `PlayerProfile` would be a schema bump and a

@@ -84,7 +84,11 @@ export function itemsForSession(plan: ProgramPlan, session_id: Uuid): ProgramIte
  * should be doing at all. Folding them together would mean a masters player's
  * deload and their baseline were the same number.
  */
-function modifier(week: ProgramWeek | undefined, adjust: number): number {
+function modifier(item: ProgramItem, week: ProgramWeek | undefined, adjust: number): number {
+	// A warm-up or cool-down is the same in every week. A deload is lighter
+	// work, not a shorter warm-up — and a masters player needs more of one, not
+	// less.
+	if (item.section !== 'main') return 1;
 	return (week?.intensity_modifier ?? 1) * adjust;
 }
 
@@ -101,7 +105,7 @@ export function scaledLoad(
 	adjust = 1
 ): number | null {
 	if (item.load_pct_1rm === null) return null;
-	return Math.round((item.load_pct_1rm * modifier(week, adjust)) / 2.5) * 2.5;
+	return Math.round((item.load_pct_1rm * modifier(item, week, adjust)) / 2.5) * 2.5;
 }
 
 /**
@@ -119,7 +123,7 @@ export function scaledRepsCount(
 	adjust = 1
 ): number | null {
 	if (item.reps_count === null) return null;
-	return Math.max(1, Math.round(item.reps_count * modifier(week, adjust)));
+	return Math.max(1, Math.round(item.reps_count * modifier(item, week, adjust)));
 }
 
 /**
@@ -136,7 +140,7 @@ export function scaledWorkSeconds(
 ): number | null {
 	if (item.work_seconds === null) return null;
 	if (item.reps_count !== null) return item.work_seconds;
-	return Math.round((item.work_seconds * modifier(week, adjust)) / 30) * 30;
+	return Math.round((item.work_seconds * modifier(item, week, adjust)) / 30) * 30;
 }
 
 /** RPE moves with the week too, clamped to the usable 5–10 part of the scale. */
@@ -146,7 +150,7 @@ export function scaledRpe(
 	adjust = 1
 ): number | null {
 	if (item.rpe === null) return null;
-	return Math.min(10, Math.max(5, Math.round(item.rpe * modifier(week, adjust) * 2) / 2));
+	return Math.min(10, Math.max(5, Math.round(item.rpe * modifier(item, week, adjust) * 2) / 2));
 }
 
 /**
@@ -200,16 +204,17 @@ function formatSeconds(seconds: number): string {
  * The UI says "loads already include this week's reduction" underneath a
  * session, and that line must not appear over a session where nothing was
  * scaled — a warm-up-and-holds session would be claiming an adjustment it
- * never made.
+ * never made. Warm-up and cool-down items never scale, so they never count.
  */
 export function hasScaledPrescription(items: ProgramItem[]): boolean {
 	return items.some(
 		(item) =>
-			item.load_pct_1rm !== null ||
-			item.rpe !== null ||
-			item.reps_count !== null ||
-			item.work_seconds !== null ||
-			item.hr_pct_min !== null
+			item.section === 'main' &&
+			(item.load_pct_1rm !== null ||
+				item.rpe !== null ||
+				item.reps_count !== null ||
+				item.work_seconds !== null ||
+				item.hr_pct_min !== null)
 	);
 }
 

@@ -90,8 +90,11 @@ export function recommendExercises(
  */
 export const SUBSTITUTION_MARGIN = 0.15;
 
-/** The opening lift of a session is the session. Substitution starts after it. */
-const PROTECTED_ORDER = 1;
+/**
+ * How many lifts at the top of the main work are never substituted. The opening
+ * lift of a session is the session.
+ */
+const PROTECTED_LIFTS = 1;
 
 type AccessoryDose = NonNullable<Exercise['accessory_dose']>;
 
@@ -105,7 +108,10 @@ const ACCESSORY_DOSE: Record<MovementPattern, AccessoryDose> = {
 	carry: { sets: 3, reps: '20 m', rest_seconds: 60 },
 	core: { sets: 3, reps: '8 each side', rest_seconds: 45 },
 	plyometric: { sets: 3, reps: '5', rest_seconds: 90 },
-	olympic: { sets: 3, reps: '3', rest_seconds: 120 }
+	olympic: { sets: 3, reps: '3', rest_seconds: 120 },
+	// Never reached: mobility work is excluded from extras below. Present only
+	// because the record has to be total over the patterns.
+	mobility: { sets: 1, reps: '30 s', rest_seconds: null }
 };
 
 export interface TailoredSession {
@@ -117,7 +123,10 @@ export interface TailoredSession {
 
 export interface TailorInput {
 	program: TrainingProgram;
-	/** The session's authored items, in order. */
+	/**
+	 * The session's authored items, in order. Warm-up and cool-down items may be
+	 * included; they are ignored — tailoring is about the main work only.
+	 */
 	items: ProgramItem[];
 	/** The whole exercise library. */
 	exercises: Exercise[];
@@ -138,6 +147,9 @@ export interface TailorInput {
 export function tailorSession(input: TailorInput): TailoredSession {
 	const { physical } = positionWeights(input.ctx);
 	const byId = new Map(input.exercises.map((e) => [e.id, e]));
+	// A warm-up squat neither needs a position swap nor means the session
+	// already trains squatting.
+	const main = input.items.filter((item) => item.section === 'main');
 
 	const usable = input.exercises.filter(
 		(exercise) =>
@@ -146,13 +158,13 @@ export function tailorSession(input: TailorInput): TailoredSession {
 	);
 
 	const used = new Set(
-		input.items.map((item) => item.exercise_id).filter((id): id is Uuid => id !== null)
+		main.map((item) => item.exercise_id).filter((id): id is Uuid => id !== null)
 	);
 
 	const substitutions = new Map<Uuid, { from: Exercise; to: Exercise }>();
 
-	for (const item of input.items) {
-		if (item.order <= PROTECTED_ORDER || item.exercise_id === null) continue;
+	for (const [index, item] of main.entries()) {
+		if (index < PROTECTED_LIFTS || item.exercise_id === null) continue;
 		const current = byId.get(item.exercise_id);
 		if (!current) continue;
 
@@ -187,7 +199,7 @@ export function tailorSession(input: TailorInput): TailoredSession {
 		// actually adds is the pattern the program left out: bounding and landing
 		// for a small forward, vertical work for a ruck, carries for a midfielder.
 		const trained = new Set<MovementPattern>(
-			input.items
+			main
 				.map((item) => (item.exercise_id ? byId.get(item.exercise_id) : undefined))
 				.filter((e): e is Exercise => e !== undefined)
 				.map((e) => e.movement_pattern)
@@ -199,8 +211,10 @@ export function tailorSession(input: TailorInput): TailoredSession {
 				(exercise) =>
 					!used.has(exercise.id) &&
 					!trained.has(exercise.movement_pattern) &&
-					// A skill lift is never an optional add-on.
-					exercise.movement_pattern !== 'olympic'
+					// A skill lift is never an optional add-on, and a stretch is
+					// cool-down work rather than position work.
+					exercise.movement_pattern !== 'olympic' &&
+					exercise.movement_pattern !== 'mobility'
 			)
 			.map((exercise) => ({ exercise, score: exerciseFit(exercise, physical) }))
 			.sort((a, b) => b.score - a.score || a.exercise.name.localeCompare(b.exercise.name));
@@ -237,6 +251,7 @@ function extraItem(exercise: Exercise, session_id: Uuid, order: number): Program
 		id: `${EXTRA_ID_PREFIX}${session_id}:${exercise.id}`,
 		session_id,
 		order,
+		section: 'main',
 		exercise_id: exercise.id,
 		sets: dose.sets,
 		reps: dose.reps,

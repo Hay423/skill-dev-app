@@ -1,4 +1,5 @@
 import type {
+	ItemSection,
 	ProgramItem,
 	ProgramPlan,
 	ProgramSession,
@@ -6,7 +7,9 @@ import type {
 	TrainingProgram,
 	Uuid
 } from '$lib/types';
+import { routineFocus } from '$lib/domain/routines';
 import { SEED_EXERCISES } from './exercises';
+import { routineBySlug, routinesFor, type RoutineSpec } from './routines';
 
 /**
  * The starting program library: three strength blocks and three conditioning
@@ -23,6 +26,14 @@ import { SEED_EXERCISES } from './exercises';
  * block readable in one screen, and it makes a deload a one-line change instead
  * of a rewritten week. `scaledLoad` in `domain/program-plan.ts` applies the
  * modifier at render time.
+ *
+ * ## Warm-ups and cool-downs are not written here
+ *
+ * A session lists its main work only. `expand` wraps it in the warm-up and
+ * cool-down routines from `routines.ts`, chosen from the main work by
+ * `routineFocus` — so a lower-body day gets leg swings and build-up sets, a
+ * sprint day gets drills and build-ups, and neither is typed out a dozen times.
+ * A session that needs something else names it with `warm_up`/`cool_down`.
  *
  * ## Duty of care, expressed as content
  *
@@ -65,18 +76,18 @@ function childId(
 	return `${g1}-${g2}-${g3}-${kind === 'session' ? 'aa01' : 'aa02'}-${hex4(week)}${hex4(day)}${hex4(order)}`;
 }
 
-const EXERCISE_ID_BY_SLUG = new Map(SEED_EXERCISES.map((e) => [e.slug, e.id]));
+const EXERCISE_BY_SLUG = new Map(SEED_EXERCISES.map((e) => [e.slug, e]));
 
-function exerciseId(slug: string): Uuid {
-	const id = EXERCISE_ID_BY_SLUG.get(slug);
+function exerciseBySlug(slug: string) {
+	const exercise = EXERCISE_BY_SLUG.get(slug);
 	// A typo in a slug would otherwise seed an item pointing at nothing, which
 	// the UI would render as a blank line. Fail at module load instead.
-	if (!id) throw new Error(`Unknown exercise slug in program content: ${slug}`);
-	return id;
+	if (!exercise) throw new Error(`Unknown exercise slug in program content: ${slug}`);
+	return exercise;
 }
 
 /** Strength prescription, or running prescription — an item carries one or the other. */
-interface ItemSpec {
+export interface ItemSpec {
 	exercise_slug?: string;
 	sets?: number;
 	reps?: string;
@@ -106,8 +117,39 @@ interface SessionSpec {
 	day_index: number;
 	name: string;
 	type: ProgramSession['type'];
+	/** The main work only. The routines' minutes are added on top by `expand`. */
 	duration_minutes: number;
+	/** Main work only — see "Warm-ups and cool-downs are not written here". */
 	items: ItemSpec[];
+	/** A routine slug from `routines.ts` in place of the default, or null for none. */
+	warm_up?: string | null;
+	cool_down?: string | null;
+}
+
+/**
+ * The routines a session is wrapped in: the ones it names, or the defaults for
+ * the focus its main work reads as.
+ */
+function routinesForSession(session: SessionSpec): {
+	warm_up: RoutineSpec | null;
+	cool_down: RoutineSpec | null;
+} {
+	const focus = routineFocus(
+		session.type,
+		session.items.map((item) => ({
+			movement_pattern: item.exercise_slug
+				? exerciseBySlug(item.exercise_slug).movement_pattern
+				: null,
+			hr_pct_max: item.hr?.[1] ?? null
+		}))
+	);
+	const defaults = focus ? routinesFor(focus) : null;
+	const pick = (named: string | null | undefined, fallback: RoutineSpec | null) =>
+		named === undefined ? fallback : named === null ? null : routineBySlug(named);
+	return {
+		warm_up: pick(session.warm_up, defaults?.warm_up ?? null),
+		cool_down: pick(session.cool_down, defaults?.cool_down ?? null)
+	};
 }
 
 interface WeekSpec {
@@ -139,6 +181,7 @@ function expand(spec: ProgramSpec): ProgramPlan {
 	for (const week of weeks) {
 		for (const session of spec.sessions) {
 			const session_id = childId(program.id, 'session', week.week_number, session.day_index);
+			const { warm_up, cool_down } = routinesForSession(session);
 			sessions.push({
 				id: session_id,
 				program_id: program.id,
@@ -146,14 +189,28 @@ function expand(spec: ProgramSpec): ProgramPlan {
 				day_index: session.day_index,
 				name: session.name,
 				type: session.type,
-				duration_minutes: session.duration_minutes
+				duration_minutes:
+					session.duration_minutes + (warm_up?.minutes ?? 0) + (cool_down?.minutes ?? 0),
+				warm_up_name: warm_up?.name ?? null,
+				warm_up_minutes: warm_up?.minutes ?? null,
+				cool_down_name: cool_down?.name ?? null,
+				cool_down_minutes: cool_down?.minutes ?? null
 			});
-			session.items.forEach((item, index) => {
+
+			// One running order across the three sections, so `order` still sorts
+			// a session top to bottom and item ids stay unique within it.
+			const sectioned: Array<[ItemSection, ItemSpec]> = [
+				...(warm_up?.items ?? []).map((item): [ItemSection, ItemSpec] => ['warm_up', item]),
+				...session.items.map((item): [ItemSection, ItemSpec] => ['main', item]),
+				...(cool_down?.items ?? []).map((item): [ItemSection, ItemSpec] => ['cool_down', item])
+			];
+			sectioned.forEach(([section, item], index) => {
 				items.push({
 					id: childId(program.id, 'item', week.week_number, session.day_index, index + 1),
 					session_id,
 					order: index + 1,
-					exercise_id: item.exercise_slug ? exerciseId(item.exercise_slug) : null,
+					section,
+					exercise_id: item.exercise_slug ? exerciseBySlug(item.exercise_slug).id : null,
 					sets: item.sets ?? null,
 					reps: item.reps ?? null,
 					rpe: item.rpe ?? null,
@@ -206,15 +263,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Lower body and trunk',
 				type: 'strength',
-				duration_minutes: 40,
+				duration_minutes: 35,
 				items: [
-					{
-						exercise_slug: 'bodyweight-squat',
-						sets: 2,
-						reps: '10',
-						rest_seconds: 45,
-						notes: 'Warm-up — no weight'
-					},
 					{ exercise_slug: 'goblet-squat', sets: 3, reps: '8-10', rpe: 6, rest_seconds: 90 },
 					{
 						exercise_slug: 'db-romanian-deadlift',
@@ -449,15 +499,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Lower strength',
 				type: 'strength',
-				duration_minutes: 50,
+				duration_minutes: 45,
 				items: [
-					{
-						exercise_slug: 'bodyweight-squat',
-						sets: 2,
-						reps: '10',
-						rest_seconds: 45,
-						notes: 'Warm-up — no weight'
-					},
 					{ exercise_slug: 'goblet-squat', sets: 4, reps: '6-8', rpe: 7, rest_seconds: 120 },
 					{ exercise_slug: 'db-romanian-deadlift', sets: 3, reps: '8', rpe: 7, rest_seconds: 120 },
 					{ exercise_slug: 'walking-lunge', sets: 3, reps: '8 each leg', rpe: 7, rest_seconds: 90 },
@@ -597,10 +640,9 @@ const SPECS: ProgramSpec[] = [
 				day_index: 2,
 				name: 'Change of direction and game running',
 				type: 'running',
-				duration_minutes: 30,
+				duration_minutes: 25,
 				items: [
 					{ exercise_slug: 'single-leg-balance', sets: 2, reps: '30 s each leg', rest_seconds: 30 },
-					{ exercise_slug: 'a-skip', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
 					{
 						reps_count: 6,
 						distance_m: 20,
@@ -643,10 +685,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Speed',
 				type: 'running',
-				duration_minutes: 40,
+				duration_minutes: 30,
 				items: [
-					{ exercise_slug: 'ankling', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
-					{ exercise_slug: 'a-skip', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
 					{ exercise_slug: 'pogo-hops', sets: 3, reps: '10', rest_seconds: 60 },
 					{
 						reps_count: 6,
@@ -668,9 +708,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 2,
 				name: 'Repeat sprint',
 				type: 'running',
-				duration_minutes: 40,
+				duration_minutes: 30,
 				items: [
-					{ exercise_slug: 'a-skip', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
 					{
 						sets: 3,
 						reps_count: 6,
@@ -680,25 +719,22 @@ const SPECS: ProgramSpec[] = [
 						rest_seconds: 180,
 						hr: [88, 95],
 						notes: 'Six 40 m efforts on 30 s, three sets, three minutes between sets'
-					},
-					{ work_seconds: 300, hr: [60, 70], notes: 'Easy jog to finish' }
+					}
 				]
 			},
 			{
 				day_index: 3,
 				name: 'Aerobic power',
 				type: 'running',
-				duration_minutes: 45,
+				duration_minutes: 30,
 				items: [
-					{ work_seconds: 480, hr: [60, 70], notes: 'Easy warm-up run' },
 					{
 						reps_count: 6,
 						distance_m: 400,
 						recovery_seconds: 120,
 						hr: [85, 92],
 						notes: 'Hard but even — the last one should match the first'
-					},
-					{ work_seconds: 300, hr: [60, 70], notes: 'Easy jog to finish' }
+					}
 				]
 			}
 		]
@@ -731,16 +767,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Match-speed top-up',
 				type: 'running',
-				duration_minutes: 25,
+				duration_minutes: 15,
 				items: [
-					{ exercise_slug: 'a-skip', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
-					{
-						reps_count: 4,
-						distance_m: 60,
-						recovery_seconds: 60,
-						hr: [70, 80],
-						notes: 'Strides at three-quarter pace'
-					},
 					{
 						reps_count: 8,
 						distance_m: 60,
@@ -811,16 +839,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Landing and hopping',
 				type: 'plyometric',
-				duration_minutes: 25,
+				duration_minutes: 20,
 				items: [
-					{
-						exercise_slug: 'bodyweight-squat',
-						sets: 2,
-						reps: '10',
-						rest_seconds: 30,
-						notes: 'Warm-up'
-					},
-					{ exercise_slug: 'ankling', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
 					{ exercise_slug: 'pogo-hops', sets: 3, reps: '10', rest_seconds: 60, hr: [60, 72] },
 					{
 						exercise_slug: 'drop-landing',
@@ -844,9 +864,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 2,
 				name: 'Hop, stick and turn',
 				type: 'plyometric',
-				duration_minutes: 25,
+				duration_minutes: 20,
 				items: [
-					{ exercise_slug: 'a-skip', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
 					{
 						exercise_slug: 'lateral-bound',
 						sets: 3,
@@ -895,9 +914,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Vertical power',
 				type: 'plyometric',
-				duration_minutes: 40,
+				duration_minutes: 35,
 				items: [
-					{ exercise_slug: 'ankling', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
 					{ exercise_slug: 'pogo-hops', sets: 3, reps: '10', rest_seconds: 60, hr: [62, 75] },
 					{ exercise_slug: 'box-jump', sets: 5, reps: '3', rest_seconds: 120, hr: [65, 78] },
 					{
@@ -915,9 +933,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 2,
 				name: 'Horizontal power',
 				type: 'plyometric',
-				duration_minutes: 40,
+				duration_minutes: 35,
 				items: [
-					{ exercise_slug: 'a-skip', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
 					{ exercise_slug: 'broad-jump', sets: 4, reps: '3', rest_seconds: 120, hr: [65, 78] },
 					{
 						exercise_slug: 'bounding',
@@ -979,9 +996,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Vertical power',
 				type: 'plyometric',
-				duration_minutes: 35,
+				duration_minutes: 30,
 				items: [
-					{ exercise_slug: 'ankling', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
 					{ exercise_slug: 'pogo-hops', sets: 3, reps: '10', rest_seconds: 60, hr: [62, 75] },
 					{ exercise_slug: 'hurdle-hop', sets: 4, reps: '5 hops', rest_seconds: 90, hr: [65, 78] },
 					{ exercise_slug: 'drop-landing', sets: 3, reps: '5', rest_seconds: 90, hr: [55, 68] },
@@ -998,9 +1014,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 2,
 				name: 'Horizontal power',
 				type: 'plyometric',
-				duration_minutes: 35,
+				duration_minutes: 30,
 				items: [
-					{ exercise_slug: 'a-skip', reps_count: 3, distance_m: 20, recovery_seconds: 30 },
 					{ exercise_slug: 'broad-jump', sets: 4, reps: '3', rest_seconds: 120, hr: [65, 78] },
 					{
 						exercise_slug: 'bounding',
@@ -1052,9 +1067,8 @@ const SPECS: ProgramSpec[] = [
 				day_index: 1,
 				name: 'Springs top-up',
 				type: 'plyometric',
-				duration_minutes: 20,
+				duration_minutes: 15,
 				items: [
-					{ exercise_slug: 'a-skip', reps_count: 2, distance_m: 20, recovery_seconds: 30 },
 					{ exercise_slug: 'pogo-hops', sets: 2, reps: '10', rest_seconds: 60, hr: [60, 72] },
 					{ exercise_slug: 'hurdle-hop', sets: 2, reps: '5 hops', rest_seconds: 90, hr: [62, 75] },
 					{

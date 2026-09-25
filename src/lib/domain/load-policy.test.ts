@@ -100,6 +100,7 @@ describe('prescriptions for masters', () => {
 		id: 'i',
 		session_id: 's',
 		order: 1,
+		section: 'main' as const,
 		exercise_id: 'e',
 		sets: 4,
 		reps: '5',

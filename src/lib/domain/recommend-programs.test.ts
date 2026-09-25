@@ -242,6 +242,99 @@ describe('seed program structure', () => {
 		expect(new Set(ids).size).toBe(ids.length);
 	});
 
+	it('wraps every gym, running and jumping session in a warm-up and a cool-down', () => {
+		for (const plan of SEED_PROGRAM_PLANS) {
+			for (const session of plan.sessions) {
+				const items = plan.items.filter((i) => i.session_id === session.id);
+				const label = `${plan.program.slug} ${session.name}`;
+				expect(
+					items.some((i) => i.section === 'warm_up'),
+					label
+				).toBe(true);
+				expect(
+					items.some((i) => i.section === 'main'),
+					label
+				).toBe(true);
+				expect(
+					items.some((i) => i.section === 'cool_down'),
+					label
+				).toBe(true);
+				expect(session.warm_up_name, label).not.toBeNull();
+				expect(session.cool_down_name, label).not.toBeNull();
+			}
+		}
+	});
+
+	it('keeps the sections in order: warm-up, then the work, then cool-down', () => {
+		const rank = { warm_up: 0, main: 1, cool_down: 2 } as const;
+		for (const plan of SEED_PROGRAM_PLANS) {
+			for (const session of plan.sessions) {
+				const ranks = plan.items
+					.filter((i) => i.session_id === session.id)
+					.sort((a, b) => a.order - b.order)
+					.map((i) => rank[i.section]);
+				expect(ranks, `${plan.program.slug} ${session.name}`).toEqual([...ranks].sort());
+			}
+		}
+	});
+
+	it('counts the warm-up and cool-down in a session’s length', () => {
+		for (const plan of SEED_PROGRAM_PLANS) {
+			for (const session of plan.sessions) {
+				const routines = (session.warm_up_minutes ?? 0) + (session.cool_down_minutes ?? 0);
+				expect(session.duration_minutes).toBeGreaterThan(routines);
+			}
+		}
+	});
+
+	it('prescribes no load or effort in a warm-up or cool-down', () => {
+		// A warm-up is the same in every week, so anything in it the week could
+		// scale would be a prescription that silently never moves.
+		for (const plan of SEED_PROGRAM_PLANS) {
+			for (const item of plan.items) {
+				if (item.section === 'main') continue;
+				expect(item.load_pct_1rm).toBeNull();
+				expect(item.rpe).toBeNull();
+			}
+		}
+	});
+
+	it('keeps stretches out of the main work', () => {
+		const byId = new Map(SEED_EXERCISES.map((e) => [e.id, e]));
+		for (const plan of SEED_PROGRAM_PLANS) {
+			for (const item of plan.items) {
+				const exercise = item.exercise_id ? byId.get(item.exercise_id) : undefined;
+				if (exercise?.movement_pattern !== 'mobility') continue;
+				expect(item.section, `${plan.program.slug} ${exercise.slug}`).not.toBe('main');
+			}
+		}
+	});
+
+	it('warms up for the upper body on an upper-body day, and for the legs on a leg day', () => {
+		const find = (slug: string, name: string) => {
+			const plan = SEED_PROGRAM_PLANS.find((p) => p.program.slug === slug)!;
+			return plan.sessions.find((s) => s.name === name && s.week_number === 1)!;
+		};
+		expect(find('preseason-max-strength', 'Upper strength').warm_up_name).toBe(
+			'Before an upper-body lift'
+		);
+		expect(find('preseason-max-strength', 'Lower strength').warm_up_name).toBe(
+			'Before a lower-body lift'
+		);
+		expect(find('repeat-sprint-builder', 'Repeat sprint').warm_up_name).toBe('Before fast running');
+		expect(find('running-foundations', 'Running technique and easy aerobic').warm_up_name).toBe(
+			'Before an easy run'
+		);
+		// Mostly steady, but it finishes on 100s at up to 88% — one fast rep is
+		// enough to need the full warm-up.
+		expect(find('in-season-running-topup', 'Aerobic top-up').warm_up_name).toBe(
+			'Before fast running'
+		);
+		expect(find('plyo-landing-foundations', 'Landing and hopping').warm_up_name).toBe(
+			'Before jumping'
+		);
+	});
+
 	it('gives every session at least one item', () => {
 		for (const plan of SEED_PROGRAM_PLANS) {
 			for (const session of plan.sessions) {

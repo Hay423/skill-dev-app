@@ -29,6 +29,7 @@
 	import { loadAffirmation } from '$lib/affirm';
 	import type { Affirmation } from '$lib/domain/affirmations';
 	import { loadWeekPlan } from '$lib/plan';
+	import { SECTION_LABELS, splitSections } from '$lib/domain/routines';
 	import {
 		PHYSICAL_QUALITY_LABELS,
 		POSITION_LABELS,
@@ -151,6 +152,13 @@
 		})
 	);
 
+	/**
+	 * Warm-up, main work and cool-down, each rendered under its own heading. All
+	 * three count towards the session being done; only position extras do not.
+	 */
+	const sections = $derived(splitSections(visible, ({ item }) => item));
+	const hasRoutines = $derived(sections.warm_up.length > 0 || sections.cool_down.length > 0);
+
 	/** Only the authored/substituted items count towards the session being done. */
 	const requiredIds = $derived(visible.map(({ item }) => item.id));
 
@@ -190,6 +198,12 @@
 	const canTick = $derived(placement !== undefined && placement.day.tickable);
 	const tickedSet = $derived(new Set(ticked));
 	const complete = $derived(allItemsTicked(requiredIds, ticked));
+	/**
+	 * Counted against the items on screen rather than the stored ticks: a tick
+	 * left over from before a content update, or on an optional extra, is not
+	 * one of the things this counter is counting.
+	 */
+	const doneCount = $derived(requiredIds.filter((id) => tickedSet.has(id)).length);
 
 	async function toggleItem(id: string) {
 		if (!placement || !canTick) return;
@@ -312,77 +326,117 @@
 	{/if}
 
 	{#if canTick}
-		<p class="mb-2 text-xs text-surface-500">
-			{ticked.length} of {visible.length} done — tap an exercise as you finish it.
+		<p class="mb-3 text-xs text-surface-500">
+			{doneCount} of {requiredIds.length} done — tap each one as you finish it{hasRoutines
+				? ', warm-up and cool-down included'
+				: ''}.
 		</p>
 	{/if}
 
-	<ol class="space-y-2">
-		{#each visible as { item, exercise, substitutedFrom } (item.id)}
-			{@const isTicked = tickedSet.has(item.id)}
-			<li
-				class="rounded-xl border bg-surface-100-900 {isTicked
-					? 'border-primary-500'
-					: 'border-surface-200-800'}"
-			>
-				<div class="flex items-stretch">
-					<div class="min-w-0 flex-1 p-3">
-						<div class="flex items-start justify-between gap-3">
-							<h2 class="font-semibold {isTicked ? 'line-through opacity-60' : ''}">
-								{exercise?.name ?? item.notes ?? 'Run'}
-							</h2>
-							<span class="shrink-0 text-xs text-surface-500">{item.order}</span>
-						</div>
-						<p class="mt-1 text-sm tabular-nums text-surface-600-400">
-							{describePrescription(item, week, adjust)}
-						</p>
-						{#if heartRate(item, exercise)}
-							<p class="mt-0.5 text-xs tabular-nums text-surface-500">
-								{heartRate(item, exercise)}
-							</p>
-						{/if}
-						{#if substitutedFrom}
-							<p class="mt-1 inline-block rounded-full preset-tonal-primary px-2 py-0.5 text-xs">
-								{substitutionNote(substitutedFrom)}
-							</p>
-						{/if}
-						{#if item.notes && exercise}
-							<p class="mt-1 text-xs text-surface-500">{item.notes}</p>
-						{/if}
-						{#if exercise && exercise.coaching_points.length > 0}
-							<details class="mt-2">
-								<summary class="tap-target flex items-center text-xs text-primary-500">
-									Coaching points
-								</summary>
-								<ul class="mt-1 space-y-1">
-									{#each exercise.coaching_points as point (point)}
-										<li class="flex gap-2 text-xs text-surface-600-400">
-											<span class="text-primary-500" aria-hidden="true">▸</span>
-											<span>{point}</span>
-										</li>
-									{/each}
-								</ul>
-							</details>
-						{/if}
+	{#snippet sectionHeading(label: string, name: string | null, minutes: number | null)}
+		<h2
+			class="mb-2 flex items-baseline justify-between gap-3 text-xs tracking-wide text-surface-600-400 uppercase"
+		>
+			<span>{label}</span>
+			{#if name}
+				<span class="text-right tracking-normal normal-case text-surface-500">
+					{name}{minutes ? ` · ${minutes} min` : ''}
+				</span>
+			{/if}
+		</h2>
+	{/snippet}
+
+	{#snippet itemCard(entry: (typeof visible)[number], number: number)}
+		{@const { item, exercise, substitutedFrom } = entry}
+		{@const isTicked = tickedSet.has(item.id)}
+		<li
+			class="rounded-xl border bg-surface-100-900 {isTicked
+				? 'border-primary-500'
+				: 'border-surface-200-800'}"
+		>
+			<div class="flex items-stretch">
+				<div class="min-w-0 flex-1 p-3">
+					<div class="flex items-start justify-between gap-3">
+						<h3 class="font-semibold {isTicked ? 'line-through opacity-60' : ''}">
+							{exercise?.name ?? item.notes ?? 'Run'}
+						</h3>
+						<span class="shrink-0 text-xs text-surface-500">{number}</span>
 					</div>
-					{#if canTick}
-						<button
-							type="button"
-							onclick={() => toggleItem(item.id)}
-							disabled={saving}
-							aria-pressed={isTicked}
-							aria-label="{isTicked ? 'Undo' : 'Done'}: {exercise?.name ?? 'item'}"
-							class="tap-target w-14 shrink-0 border-l border-surface-200-800 text-lg disabled:opacity-40 {isTicked
-								? 'text-primary-500'
-								: 'text-surface-500'}"
-						>
-							{isTicked ? '✓' : '○'}
-						</button>
+					<p class="mt-1 text-sm tabular-nums text-surface-600-400">
+						{describePrescription(item, week, adjust)}
+					</p>
+					{#if heartRate(item, exercise)}
+						<p class="mt-0.5 text-xs tabular-nums text-surface-500">
+							{heartRate(item, exercise)}
+						</p>
+					{/if}
+					{#if substitutedFrom}
+						<p class="mt-1 inline-block rounded-full preset-tonal-primary px-2 py-0.5 text-xs">
+							{substitutionNote(substitutedFrom)}
+						</p>
+					{/if}
+					{#if item.notes && exercise}
+						<p class="mt-1 text-xs text-surface-500">{item.notes}</p>
+					{/if}
+					{#if exercise && exercise.coaching_points.length > 0}
+						<details class="mt-2">
+							<summary class="tap-target flex items-center text-xs text-primary-500">
+								Coaching points
+							</summary>
+							<ul class="mt-1 space-y-1">
+								{#each exercise.coaching_points as point (point)}
+									<li class="flex gap-2 text-xs text-surface-600-400">
+										<span class="text-primary-500" aria-hidden="true">▸</span>
+										<span>{point}</span>
+									</li>
+								{/each}
+							</ul>
+						</details>
 					{/if}
 				</div>
-			</li>
-		{/each}
-	</ol>
+				{#if canTick}
+					<button
+						type="button"
+						onclick={() => toggleItem(item.id)}
+						disabled={saving}
+						aria-pressed={isTicked}
+						aria-label="{isTicked ? 'Undo' : 'Done'}: {exercise?.name ?? item.notes ?? 'item'}"
+						class="tap-target w-14 shrink-0 border-l border-surface-200-800 text-lg disabled:opacity-40 {isTicked
+							? 'text-primary-500'
+							: 'text-surface-500'}"
+					>
+						{isTicked ? '✓' : '○'}
+					</button>
+				{/if}
+			</div>
+		</li>
+	{/snippet}
+
+	{#if sections.warm_up.length > 0}
+		<section class="mb-5">
+			{@render sectionHeading(
+				SECTION_LABELS.warm_up,
+				session.warm_up_name,
+				session.warm_up_minutes
+			)}
+			<ol class="space-y-2">
+				{#each sections.warm_up as entry, i (entry.item.id)}
+					{@render itemCard(entry, i + 1)}
+				{/each}
+			</ol>
+		</section>
+	{/if}
+
+	<section>
+		{#if hasRoutines}
+			{@render sectionHeading(SECTION_LABELS.main, null, null)}
+		{/if}
+		<ol class="space-y-2">
+			{#each sections.main as entry, i (entry.item.id)}
+				{@render itemCard(entry, i + 1)}
+			{/each}
+		</ol>
+	</section>
 
 	{#if tailored.extras.length > 0}
 		<div class="mt-4">
@@ -400,9 +454,9 @@
 						<div class="flex items-stretch">
 							<div class="min-w-0 flex-1 p-3">
 								<div class="flex items-start justify-between gap-3">
-									<h2 class="font-semibold {isTicked ? 'line-through opacity-60' : ''}">
+									<h3 class="font-semibold {isTicked ? 'line-through opacity-60' : ''}">
 										{exercise.name}
-									</h2>
+									</h3>
 								</div>
 								<p class="mt-1 text-sm tabular-nums text-surface-600-400">
 									{describePrescription(item, week, adjust)}
@@ -450,6 +504,21 @@
 				{/each}
 			</ol>
 		</div>
+	{/if}
+
+	{#if sections.cool_down.length > 0}
+		<section class="mt-5">
+			{@render sectionHeading(
+				SECTION_LABELS.cool_down,
+				session.cool_down_name,
+				session.cool_down_minutes
+			)}
+			<ol class="space-y-2">
+				{#each sections.cool_down as entry, i (entry.item.id)}
+					{@render itemCard(entry, i + 1)}
+				{/each}
+			</ol>
+		</section>
 	{/if}
 
 	{#if canTick}

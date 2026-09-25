@@ -366,6 +366,44 @@ export class SkillDevDb extends Dexie {
 						if (value?.length) drill.equipment_required = [...value];
 					});
 			});
+
+		// v10 wraps every program session in a warm-up and a cool-down.
+		//
+		// Items gain a `section` and sessions gain the names and lengths of the
+		// routines stamped into them — authored content again, so the program
+		// subtree is cleared for `seedPrograms` to rewrite, exactly as v8 did.
+		//
+		// Unlike v8, some item ids do move: the ad-hoc warm-up drills that used to
+		// open a session's main work are gone, and ids are derived from position.
+		// A session log's `completed_item_ids` may therefore hold ids that no
+		// longer resolve. That is harmless — a tick is only ever read against the
+		// session's current items, so a stale one is ignored rather than
+		// miscounted — and a session already finished stays finished, because
+		// `completed_at` is on the log, not derived from the ticks. What a player
+		// mid-week loses is the ticks on a part-done session, which is the
+		// trade that was agreed for getting warm-ups out of the main work.
+		//
+		// The new mobility exercises need no migration: `seedExercises` is
+		// insert-only by id and adds them on the next boot.
+		this.version(10)
+			.stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			})
+			.upgrade(async (tx) => {
+				await Promise.all(PROGRAM_CONTENT_TABLES.map((table) => tx.table(table).clear()));
+			});
 	}
 }
 

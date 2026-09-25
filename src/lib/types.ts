@@ -386,7 +386,13 @@ export const MOVEMENT_PATTERNS = [
 	'carry',
 	'core',
 	'plyometric',
-	'olympic'
+	'olympic',
+	/**
+	 * Range-of-motion work: the leg swings and stretches a warm-up or a
+	 * cool-down is made of. Never prescribed as main work, never offered as a
+	 * position extra, and carries no heart rate line.
+	 */
+	'mobility'
 ] as const;
 export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
 
@@ -463,13 +469,37 @@ export interface ProgramSession {
 	day_index: number;
 	name: string;
 	type: 'strength' | 'running' | 'skills' | 'recovery' | 'plyometric';
+	/** The whole session, warm-up and cool-down included. */
 	duration_minutes: number;
+	/**
+	 * The warm-up and cool-down routines stamped into this session's items,
+	 * named and timed so the session view can head each section. Null where the
+	 * session has none. Denormalised from `seed/routines.ts` because a routine is
+	 * authoring shorthand, not a thing stored in its own right — the items are
+	 * the prescription.
+	 */
+	warm_up_name: string | null;
+	warm_up_minutes: number | null;
+	cool_down_name: string | null;
+	cool_down_minutes: number | null;
 }
+
+/**
+ * Which part of a session an item belongs to.
+ *
+ * Warm-up and cool-down items are ticked like any other and count towards the
+ * session being done, but the week never scales them — a deload week still
+ * warms up properly — and position tailoring never touches them.
+ */
+export const ITEM_SECTIONS = ['warm_up', 'main', 'cool_down'] as const;
+export type ItemSection = (typeof ITEM_SECTIONS)[number];
 
 export interface ProgramItem {
 	id: Uuid;
 	session_id: Uuid;
+	/** Position across the whole session, warm-up first — sections are contiguous. */
 	order: number;
+	section: ItemSection;
 	exercise_id: Uuid | null;
 	/** Strength prescription. */
 	sets: number | null;

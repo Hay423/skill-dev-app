@@ -887,3 +887,139 @@ describe('v8 -> v9 Dexie migration', () => {
 		v9.close();
 	});
 });
+
+describe('v9 -> v10 Dexie migration', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	/** The v9 schema, before sessions carried a warm-up and a cool-down. */
+	class V9Db extends Dexie {
+		constructor() {
+			super('skill-dev');
+			this.version(9).stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			});
+		}
+	}
+
+	const at = '2026-09-23T02:00:00.000Z';
+	const meta = {
+		created_at: at,
+		updated_at: at,
+		synced_at: null,
+		_dirty: 1 as const,
+		_deleted: 0 as const
+	};
+
+	/** A stored session whose items carry no section, as v9 wrote them. */
+	async function seedV9(db: V9Db): Promise<void> {
+		await db.table('program_sessions').add({
+			id: 'session-1',
+			program_id: 'program-1',
+			week_number: 1,
+			day_index: 1,
+			name: 'Speed',
+			type: 'running',
+			duration_minutes: 40
+		});
+		await db.table('program_items').add({
+			id: 'item-1',
+			session_id: 'session-1',
+			order: 1,
+			exercise_id: null,
+			sets: null,
+			reps: null,
+			rpe: null,
+			load_pct_1rm: null,
+			rest_seconds: null,
+			distance_m: null,
+			work_seconds: 480,
+			reps_count: null,
+			recovery_seconds: null,
+			hr_pct_min: 60,
+			hr_pct_max: 70,
+			notes: 'Easy warm-up run'
+		});
+		await db
+			.table('exercises')
+			.add({ id: 'exercise-1', slug: 'a-skip', movement_pattern: 'plyometric' });
+		await db.table('program_enrolments').add({
+			id: 'enrolment-1',
+			user_id: LOCAL_USER_ID,
+			program_id: 'program-1',
+			started_at: at,
+			started_on: '2026-09-23',
+			completed_at: null,
+			...meta
+		});
+		await db.table('program_session_logs').add({
+			id: 'log-1',
+			user_id: LOCAL_USER_ID,
+			enrolment_id: 'enrolment-1',
+			program_session_id: 'session-1',
+			local_date: '2026-09-23',
+			completed_item_ids: ['item-1'],
+			completed_at: at,
+			...meta
+		});
+	}
+
+	it('clears the program subtree so every session is re-seeded with its routines', async () => {
+		const v9 = new V9Db();
+		await seedV9(v9);
+		v9.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v10 = new SkillDevDb();
+
+		expect(await v10.program_sessions.count()).toBe(0);
+		expect(await v10.program_items.count()).toBe(0);
+
+		v10.close();
+	});
+
+	it('keeps the enrolment, and a finished session stays finished', async () => {
+		// Some item ids move in the re-seed, so the stored tick may no longer
+		// resolve. `completed_at` is what says the session was done, and it is on
+		// the log — which the migration never touches.
+		const v9 = new V9Db();
+		await seedV9(v9);
+		v9.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v10 = new SkillDevDb();
+
+		expect(await v10.program_enrolments.get('enrolment-1')).toBeDefined();
+		const log = await v10.program_session_logs.get('log-1');
+		expect(log!.completed_at).toBe(at);
+		expect(log!.completed_item_ids).toEqual(['item-1']);
+
+		v10.close();
+	});
+
+	it('leaves the exercise library for the insert-only seeder to extend', async () => {
+		const v9 = new V9Db();
+		await seedV9(v9);
+		v9.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v10 = new SkillDevDb();
+
+		expect(await v10.exercises.get('exercise-1')).toBeDefined();
+
+		v10.close();
+	});
+});
