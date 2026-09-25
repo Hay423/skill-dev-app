@@ -107,6 +107,7 @@ src/lib/data/user.ts      Who owns the rows being written (`currentUserId()`)
 src/lib/data/seed/        Bundled drill library (reference data)
 src/lib/domain/           Pure functions — stats, streaks. Fully unit tested.
 src/lib/util/time.ts      Local-calendar date helpers
+src/lib/actions/          Svelte actions — DOM behaviour (swipe gestures)
 src/lib/components/       Shared UI
 src/routes/               Pages
 ```

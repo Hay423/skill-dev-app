@@ -25,3 +25,69 @@ body {
 	min-height: 44px;
 	min-width: 44px;
 }
+
+/*
+	Tab changes slide sideways, the way a native pager does: the page you left
+	leaves the way your thumb went and the next one follows it in. Driven by
+	`data-tab-slide` on <html>, which the root layout sets for tab-to-tab
+	navigations only — every other navigation is a change of depth and stays
+	instant.
+
+	Only the `root` snapshot moves. The top bar and bottom nav carry their own
+	`view-transition-name`, which lifts them out of that snapshot so they hold
+	still and the content slides beneath them. The root snapshot is
+	viewport-sized, so tabs of wildly different heights slide rather than
+	stretch into each other.
+*/
+@keyframes tab-slide-out-left {
+	to {
+		transform: translateX(-100%);
+	}
+}
+
+@keyframes tab-slide-in-right {
+	from {
+		transform: translateX(100%);
+	}
+}
+
+@keyframes tab-slide-out-right {
+	to {
+		transform: translateX(100%);
+	}
+}
+
+@keyframes tab-slide-in-left {
+	from {
+		transform: translateX(-100%);
+	}
+}
+
+html[data-tab-slide]::view-transition-old(root),
+html[data-tab-slide]::view-transition-new(root) {
+	/*
+		The default cross-fade blend washes out the overlap between two pages that
+		are both fully opaque the whole way across.
+	*/
+	mix-blend-mode: normal;
+	animation-duration: 200ms;
+	/* Quick off the mark, settling at the end — a thumb flick, not a slider. */
+	animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+	animation-fill-mode: both;
+}
+
+html[data-tab-slide='forward']::view-transition-old(root) {
+	animation-name: tab-slide-out-left;
+}
+
+html[data-tab-slide='forward']::view-transition-new(root) {
+	animation-name: tab-slide-in-right;
+}
+
+html[data-tab-slide='back']::view-transition-old(root) {
+	animation-name: tab-slide-out-right;
+}
+
+html[data-tab-slide='back']::view-transition-new(root) {
+	animation-name: tab-slide-in-left;
+}

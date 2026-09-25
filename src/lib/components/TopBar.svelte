@@ -30,7 +30,7 @@
 	the same title said twice at 390px.
 -->
 <header
-	class="fixed inset-x-0 top-0 z-40 border-b border-surface-200-800 bg-surface-100-900/95 backdrop-blur"
+	class="fixed inset-x-0 top-0 z-40 border-b border-surface-200-800 bg-surface-100-900/95 backdrop-blur [view-transition-name:top-bar]"
 	style="padding-top: var(--inset-top)"
 >
 	<div class="mx-auto flex h-12 max-w-lg items-center px-2">

@@ -8,7 +8,7 @@
 </script>
 
 <nav
-	class="fixed inset-x-0 bottom-0 z-50 border-t border-surface-200-800 bg-surface-100-900/95 backdrop-blur"
+	class="fixed inset-x-0 bottom-0 z-50 border-t border-surface-200-800 bg-surface-100-900/95 backdrop-blur [view-transition-name:bottom-nav]"
 	style="padding-bottom: var(--inset-bottom)"
 >
 	<ul class="mx-auto flex max-w-lg">
