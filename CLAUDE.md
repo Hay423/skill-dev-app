@@ -43,6 +43,57 @@ npm test          # vitest, single run
 npm run format    # prettier --write
 ```
 
+### Finishing a change
+
+**Every change ends with `npm run build`.** Not as a final check that the code
+compiles — `npm run check` already did that — but because the build output _is_
+what the phone loads.
+
+The app is served over Tailscale on this machine's MagicDNS name over HTTPS
+(`tailscale serve status` will show it), which `tailscale serve` proxies to
+`127.0.0.1:4173`. Port 4173 is `npm run preview`, and preview serves the
+compiled output from `.svelte-kit/output` exactly as it found it — it does not
+compile, watch or reload. So a change that has not been built is invisible there
+no matter how correct it is, and the site keeps serving the previous build with
+no sign that anything is out of date. That is a worse failure than a build
+error, because it looks like the change did not work rather than like it was
+never delivered.
+
+**A build and a running preview server do not coexist.** Two things follow, both
+learned the hard way:
+
+- A build replaces the content-hashed assets underneath a running preview, and
+  the server dies with an unhandled `ENOENT` the moment anything requests a hash
+  that no longer exists. Preview reads from disk per request, so it does serve
+  the new build — right until an old asset is asked for and it crashes. **Always
+  restart preview after building.**
+- A _failed_ build is worse than no build. It empties `.svelte-kit/output`
+  before it fails, so a running preview dies and a fresh one refuses to start
+  (`Server files not found`). The site is down until the build is fixed — it
+  does not fall back to the last good one. (`build/` survives, because the
+  adapter never ran, but that is not what preview reads.)
+
+`npm run dev` on 5173 is the other server, with hot reload, and it reads source
+directly. It is the right thing to use while working and it is _not_ what the
+HTTPS site reads — the two are easy to confuse precisely because both are
+"running the app".
+
+So the full sequence at the end of a change:
+
+```sh
+npm run format    # then check, test, build — in that order
+npm run check
+npm test
+npm run build     # the step that actually ships it
+```
+
+A `Stop` hook does all of this automatically — see `.claude/hooks/build.sh`. It
+skips the build when nothing was edited, and restarts preview afterwards so the
+build never leaves the server holding files that are no longer there. The hook
+is wired up in `.claude/settings.local.json`, which is gitignored because the
+port, the path and the Tailscale proxy belong to one machine; the script itself
+is committed. Run `npm run build` by hand on a machine without the hook.
+
 ## Architecture
 
 ```

@@ -15,3 +15,8 @@ coverage
 # thousands of lines across ~84 files, which buries real diffs. Kept on disk,
 # out of git.
 graphify-out/
+
+# Claude Code machine-local settings (the Stop hook that builds and restarts
+# the preview server). The hook script itself is committed; which machine runs
+# it, and the absolute path it lives at, are not.
+.claude/settings.local.json
