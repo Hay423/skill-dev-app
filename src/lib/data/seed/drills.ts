@@ -263,5 +263,160 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 		difficulty: 2,
 		tracks_reps: false,
 		target_reps: null
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a13',
+		slug: 'goal-post-handballs',
+		name: 'Goal post handballs',
+		category: 'handball',
+		summary: 'Quick handballs into a goal post, collecting the rebound.',
+		setup: 'Stand a metre from the goal post and handball into it, aiming to collect the rebound.',
+		coaching_points: [
+			'Knees slightly bent, heels off the ground',
+			"Punch through the ball, don't throw it",
+			'Watch the ball from your hand to its rebound off the post'
+		],
+		equipment: ['Football', 'Goals'],
+		equipment_required: ['goals'],
+		min_players: 1,
+		duration_minutes: 8,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 30
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a14',
+		slug: 'stoppage-simulation',
+		name: 'Stoppage sim',
+		category: 'ground_ball',
+		summary: 'Clean gathers at pace from a bouncing ball.',
+		setup: 'Throw or kick the ball into space and run to gather it cleanly at pace.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Bend your knees and get low to the ground',
+			'Use your body to shield the ball from opponents'
+		],
+		equipment: ['Football'],
+		equipment_required: ['park'],
+		min_players: 1,
+		duration_minutes: 5,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 30
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a15',
+		slug: 'cricket-net-kicks',
+		name: 'Cricket net kicks',
+		category: 'kicking',
+		summary: 'Kicking the ball from one end of a cricket net to the other.',
+		setup:
+			"Set up at the bowler's end of a cricket net and kick into the middle of the back of the net, without the ball touching the sides, floor or roof.",
+		coaching_points: [
+			'Keep your head over the ball, leaning forward slightly',
+			'Follow through with your kicking leg',
+			'Focus on accuracy rather than power'
+		],
+		equipment: ['Football', 'Cricket net'],
+		equipment_required: ['oval'],
+		min_players: 1,
+		duration_minutes: 10,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 20
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a16',
+		slug: 'goals-on-the-run',
+		name: 'Goals on the run',
+		category: 'goalkicking',
+		summary: 'Kicking goals on the run from different angles and distances.',
+		setup:
+			'Set up within or just outside the 50 m arc, throw or kick the ball in front of yourself, then gather and kick on the run.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Collect the ball cleanly and quickly',
+			'Straighten the hips and shoulders to the goals'
+		],
+		equipment: ['Football', 'Goals'],
+		equipment_required: ['goals'],
+		position_tags: [
+			'inside_midfielder',
+			'outside_midfielder',
+			'key_forward',
+			'medium_forward',
+			'small_forward'
+		],
+		min_players: 1,
+		duration_minutes: 12,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 40
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a17',
+		slug: 'defensive-exits',
+		name: 'Defensive exit',
+		category: 'kicking',
+		summary: 'Kicking the ball out of deep 50 to a teammate in space.',
+		setup:
+			'Start outside the 50 m arc, have a teammate kick the ball over your head deep into the arc, then gather and kick it back to them in space.',
+		coaching_points: [
+			'Stay off your heels and be ready to collect the ball',
+			'Vary your kicking distances and angles',
+			'Hit your teammate on the chest'
+		],
+		equipment: ['Football'],
+		equipment_required: ['oval'],
+		position_tags: ['key_defender', 'general_defender'],
+		min_players: 2,
+		duration_minutes: 12,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 12
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a18',
+		slug: 'one-on-one-defending',
+		name: '1-on-1s',
+		category: 'marking',
+		summary: 'Defending one on one in a contest.',
+		setup:
+			'Set up against a mate and have a third player kick the ball high at the two of you. Contest the drop zone and either mark it or bring it to ground.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Give your opponent no room to jump at the ball',
+			'Try to push your opponent off balance, or out of the contest'
+		],
+		equipment: ['Football'],
+		equipment_required: ['park'],
+		position_tags: ['key_defender', 'general_defender', 'ruck', 'key_forward', 'medium_forward'],
+		min_players: 3,
+		duration_minutes: 15,
+		difficulty: 3,
+		tracks_reps: true,
+		target_reps: 5
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a19',
+		slug: 'ruck-taps',
+		name: 'Ruck taps',
+		category: 'ruckwork',
+		summary: 'Ruck taps to a teammate out of a contest.',
+		setup:
+			'Set up against a mate and have a teammate throw the ball up between you. Jump and tap it to your teammate.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Jump up and hit the ball at the highest point you can reach',
+			'Listen to your teammate and tap to where they call'
+		],
+		equipment: ['Football'],
+		equipment_required: ['park'],
+		position_tags: ['key_defender', 'ruck', 'key_forward'],
+		min_players: 3,
+		duration_minutes: 8,
+		difficulty: 1,
+		tracks_reps: true,
+		target_reps: 16
 	}
 ];

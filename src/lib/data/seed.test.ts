@@ -160,11 +160,16 @@ describe('the place ladder over the bundled drills', () => {
 		}
 
 		// Recorded so a content change that shifts the ladder shows up as a diff.
+		// `oval` only joined the row with the first drill to require a marked
+		// ground — the 50 m arc and a cricket net are both ground fixtures that a
+		// park has no equivalent of. `goals` keeps everything but the wall drill,
+		// which is the one place the ladder does not reach.
 		expect(Object.fromEntries(counts.map((c) => [c.place, c.kept]))).toEqual({
 			backyard: 3,
 			wall: 4,
-			park: 9,
-			goals: 11
+			park: 12,
+			oval: 14,
+			goals: 18
 		});
 	});
 });

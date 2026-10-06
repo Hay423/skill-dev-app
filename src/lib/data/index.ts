@@ -46,10 +46,22 @@ export const repo: Repo = createRepo();
  * survive across boots and app updates. A seed drill's copy can still be fixed
  * in `seed/drills.ts` before a player has ever opened the app, or by editing it
  * again in the admin library afterwards.
+ *
+ * Skips by **slug as well as id**, because a drill can arrive by two routes. A
+ * drill uploaded through the admin library got a generated id, so a later
+ * release that promotes the same drill to the bundled seed carries an id that
+ * device has never seen — and `slug` is a unique index, so adding it would
+ * throw `ConstraintError` on every boot, which `seedReferenceData` surfaces as
+ * a rejected promise before the layout has rendered anything. The player's own
+ * row wins: it is the one their rep logs point at, and its id must never move.
+ * The cost is that such a row keeps `source: 'custom'` and whatever copy was
+ * uploaded rather than the seed's, which is the right way round — a hand-made
+ * edit is not something an app update should quietly overwrite.
  */
 export async function seedDrills(): Promise<void> {
 	const existingIds = new Set(await db.drills.toCollection().primaryKeys());
-	const missing = SEED_DRILLS.filter((d) => !existingIds.has(d.id));
+	const existingSlugs = new Set(await db.drills.orderBy('slug').keys());
+	const missing = SEED_DRILLS.filter((d) => !existingIds.has(d.id) && !existingSlugs.has(d.slug));
 	if (missing.length === 0) return;
 	await db.drills.bulkAdd(
 		missing.map((d) => ({ ...d, active: 1 as const, source: 'seed' as const }))
