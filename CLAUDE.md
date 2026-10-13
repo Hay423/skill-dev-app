@@ -87,6 +87,13 @@ npm test
 npm run build     # the step that actually ships it
 ```
 
+At login, a Windows Scheduled Task runs `scripts/boot-app.sh`, which builds and
+starts both servers from cold (preview on 4173, dev on 5173) and logs to
+`.boot-logs/`. So both are usually already up before any work starts — check
+the ports before launching another. The task is registered per-machine by
+`scripts/register-boot-task.ps1` (run once, by hand); the scripts are
+committed, the registration is not.
+
 A `Stop` hook does all of this automatically — see `.claude/hooks/build.sh`. It
 skips the build when nothing was edited, and restarts preview afterwards so the
 build never leaves the server holding files that are no longer there. The hook

@@ -9,6 +9,7 @@ dist
 *.log
 .vite
 coverage
+.boot-logs/
 
 # Generated code-analysis output (graph, wiki, cache). Produced by an external
 # graphify run, not by anything in this repo, and regenerating it churns tens of
