@@ -472,7 +472,16 @@ const SPECS: ProgramSpec[] = [
 			target_positions: [],
 			target_qualities: ['max_strength', 'power'],
 			min_age_group: 'u17',
-			experience: ['developing', 'experienced'],
+			/*
+			 * First-year included on purpose. `experience` is a pitch, not a gate —
+			 * it only scores (`programExperienceFit`), so a first-year U17 could
+			 * always reach this block; leaving them out merely buried it below
+			 * `strength-foundations`. Every set here is prescribed by RPE and rep
+			 * range, which self-regulates for somebody new to lifting in a way a
+			 * percentage never would, so the honest thing is to offer it level with
+			 * foundations and let the player choose the ladder or the full block.
+			 */
+			experience: ['first_year', 'developing', 'experienced'],
 			weeks: 8,
 			sessions_per_week: 3,
 			equipment_required: ['home_weights'],
@@ -972,7 +981,14 @@ const SPECS: ProgramSpec[] = [
 			target_positions: [],
 			target_qualities: ['power', 'speed', 'acceleration'],
 			min_age_group: 'u17',
-			experience: ['developing', 'experienced'],
+			/*
+			 * First-year included for the same reason as `u17-preseason-strength`:
+			 * the block was always reachable and only ranked below
+			 * `plyo-landing-foundations`. Nothing here multiplies landing force —
+			 * no box, no depth jump — so a first-year jumping on grass is doing
+			 * hops and bounds, not absorbing a drop.
+			 */
+			experience: ['first_year', 'developing', 'experienced'],
 			weeks: 6,
 			sessions_per_week: 2,
 			equipment_required: [],
