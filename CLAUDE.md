@@ -111,8 +111,10 @@ src/lib/data/local-repo.ts  Dexie implementation
 src/lib/data/db.ts        Dexie schema + indexes
 src/lib/data/index.ts     Picks the backend from config, exports `repo` + seeding
 src/lib/data/user.ts      Who owns the rows being written (`currentUserId()`)
-src/lib/data/seed/        Bundled drill library (reference data)
-src/lib/domain/           Pure functions — stats, streaks. Fully unit tested.
+src/lib/data/seed/        Bundled drills, positions, exercises, programs, test protocols
+src/lib/domain/           Pure functions — stats, streaks, test scoring, retest rounds. Fully unit tested.
+src/lib/plan.ts           Composes the week plan from the repo — no rules of its own
+src/lib/skill-tests.ts    Composes the testing phase from the repo — likewise
 src/lib/util/time.ts      Local-calendar date helpers
 src/lib/actions/          Svelte actions — DOM behaviour (swipe gestures)
 src/lib/components/       Shared UI
@@ -189,6 +191,20 @@ pushed. Giving it a `user_id` would imply a per-user copy that does not exist.
   would break streaks. Timestamps (`recorded_at` etc.) are ISO-8601 UTC.
 - **Drill ids are permanent.** Rep logs reference them. Edit a drill's copy
   freely; never change or recycle its `id`. `slug` is the natural key for upserts.
+- **A test protocol is frozen whole, not just its id.** A `TestProtocol` in
+  `src/lib/data/seed/tests.ts` is the only reason two results are comparable, so
+  its distances, attempt slots, target size and scoring can never be edited once
+  released — a stored result would silently start claiming something else.
+  Clarify wording if you must; anything else is a **new protocol with a new id
+  and slug**, and the old one is retired. A test is not a drill: drills are
+  practice and their copy improves freely.
+- **Retest rounds are derived from the results, never counted.** There is no
+  round number stored anywhere: `testRounds` in `src/lib/domain/retest.ts`
+  buckets results oldest-first, and the round number is a position in that walk.
+  Same reason `ProgramEnrolment` has no `current_week` — a stored counter
+  disagrees with the data the first time a round is missed, a test is re-sat or
+  a mis-scored result is deleted. A round left part-done closes when its window
+  elapses; nothing waits for it.
 - **Mobile first.** Interactive elements get `tap-target` (44px minimum). Assume
   one thumb and bright sunlight. Test at 390px wide.
 - **Offline is the default, not a fallback.** Nothing may block on the network.
@@ -202,5 +218,10 @@ components are not unit tested yet — see `plans/ROADMAP.md`.
 
 ## Not yet built
 
-Sessions exist in the model and the `Repo` interface but have no UI. See
-`plans/ROADMAP.md` before starting anything substantial.
+Sessions exist in the model and the `Repo` interface but have no UI. Skill
+tests and the monthly retest cycle are built, but there are **no published
+norms** behind them — a result is only ever compared with the player's own
+earlier rounds, and the UI says so rather than borrowing a benchmark from
+another age group. The round report names the player's weakest dimension but
+nothing feeds it back into drill recommendations yet. See `plans/ROADMAP.md`
+before starting anything substantial.

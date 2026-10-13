@@ -9,12 +9,14 @@ import {
 	type ProgramSessionLog,
 	type ProgramWeek,
 	type SkillCategory,
+	type TestProtocol,
 	type TrainingProgram,
 	type Uuid,
 	type Weekday
 } from '$lib/types';
 import { addDays, startOfWeek, weekDates, weekdayOf, weeksBetween } from '$lib/util/time';
 import { maxSkillsDaysFor } from './load-policy';
+import type { RetestCycle } from './retest';
 import { DISCIPLINE_SESSION_ORDER, itemsForSession, sessionsForWeek, weekOf } from './program-plan';
 
 /**
@@ -76,6 +78,24 @@ export interface SkillsSuggestion {
 	drill: Drill | null;
 }
 
+/**
+ * A retest round, placed on the day the player is being asked to sit it.
+ *
+ * The cycle decides *whether* a round is due (`domain/retest.ts`); this decides
+ * *when in the week* — which is the difference between a four-week cadence the
+ * app nags about and one it actually plans for.
+ */
+export interface PlannedRetest {
+	round: number;
+	/** Tests still to sit in the round. */
+	outstanding: TestProtocol[];
+	/** Tests of the round already sat, and how many it holds. */
+	done: number;
+	total: number;
+	/** It fell due before today — this is a catch-up, not a schedule. */
+	overdue: boolean;
+}
+
 export interface PlannedDay {
 	date: IsoDate;
 	weekday: Weekday;
@@ -83,6 +103,8 @@ export interface PlannedDay {
 	available: boolean;
 	sessions: ScheduledSession[];
 	skills: SkillsSuggestion | null;
+	/** The retest round the player is asked to sit on this day, if any. */
+	retest: PlannedRetest | null;
 	/** Reps were logged on this day. This *is* the tick for a skills day — see `planWeek`. */
 	loggedReps: boolean;
 	/** Today, in the week being shown. */
@@ -102,6 +124,8 @@ export interface WeekPlanInput {
 	drills?: Drill[];
 	/** Days reps were logged on. */
 	repDates?: IsoDate[];
+	/** The monthly retest cycle, so a due round gets a day of its own. */
+	retests?: RetestCycle;
 }
 
 /**
@@ -187,6 +211,7 @@ export function planWeek(input: WeekPlanInput): PlannedDay[] {
 		available: false,
 		sessions: [],
 		skills: null,
+		retest: null,
 		loggedReps: repDates.has(date),
 		isToday: date === today,
 		tickable: isTickable(date, today)
@@ -251,6 +276,10 @@ export function planWeek(input: WeekPlanInput): PlannedDay[] {
 		);
 	}
 
+	// A due retest round gets a day before skills work does, and takes a day
+	// clear of program sessions wherever there is one.
+	if (input.retests) placeRetest(days, slots, input.retests, today);
+
 	// Skills work fills the training days no program landed on. Rotated through
 	// the recommendations so a week reads as a variety of work rather than the
 	// same drill five times.
@@ -261,7 +290,7 @@ export function planWeek(input: WeekPlanInput): PlannedDay[] {
 	if (drills.length > 0) {
 		let rotation = 0;
 		for (const day of days) {
-			if (!day.available || day.sessions.length > 0) continue;
+			if (!day.available || day.sessions.length > 0 || day.retest) continue;
 			if (rotation >= maxSkillsDays) break;
 			const drill = drills[rotation % drills.length];
 			rotation += 1;
@@ -270,6 +299,48 @@ export function planWeek(input: WeekPlanInput): PlannedDay[] {
 	}
 
 	return days;
+}
+
+/**
+ * Put a due retest round on a day of this week.
+ *
+ * Rules, in order:
+ *
+ * 1. Never before it fell due, and never in the past. Browsing back to last
+ *    week must not show a test that is due now, and browsing forward to a week
+ *    the round has not reached yet must not show it early.
+ * 2. A day clear of program sessions, where the week has one. A 20-minute
+ *    kicking test after a heavy lower session is a worse test, not a fuller
+ *    day — the number it produces is what the next month gets measured against,
+ *    so it is worth a day of its own.
+ * 3. Failing that, the earliest eligible day anyway. Same rule the session
+ *    placer follows: a plan that silently omits what the player is being asked
+ *    to do is worse than one that warns them it is a busy Tuesday.
+ */
+function placeRetest(
+	days: PlannedDay[],
+	slots: number[],
+	cycle: RetestCycle,
+	today: IsoDate
+): void {
+	if (!cycle.due || cycle.outstanding.length === 0) return;
+
+	const notBefore = cycle.due_on && cycle.due_on > today ? cycle.due_on : today;
+	if (notBefore > days[days.length - 1].date) return;
+
+	const eligible = slots.filter((i) => days[i].date >= notBefore);
+	if (eligible.length === 0) return;
+
+	const slot = eligible.find((i) => days[i].sessions.length === 0) ?? eligible[0];
+	const done = cycle.open?.results.length ?? 0;
+
+	days[slot].retest = {
+		round: cycle.current_number,
+		outstanding: cycle.outstanding,
+		done,
+		total: done + cycle.outstanding.length,
+		overdue: cycle.due_on !== null && cycle.due_on < today
+	};
 }
 
 /** Everything the week strip needs to show progress at a glance. */

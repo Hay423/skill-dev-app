@@ -6,6 +6,7 @@ import { SEED_DRILLS } from './seed/drills';
 import { SEED_EXERCISES } from './seed/exercises';
 import { SEED_POSITIONS } from './seed/positions';
 import { SEED_PROGRAM_PLANS } from './seed/programs';
+import { SEED_TEST_PROTOCOLS } from './seed/tests';
 
 /**
  * Build the repository the environment asks for.
@@ -124,9 +125,34 @@ export async function seedPrograms(): Promise<void> {
 	);
 }
 
-/** Every bundled seed, for the one call the app layout makes on boot. */
-export async function seedReferenceData(): Promise<void> {
-	await Promise.all([seedDrills(), seedPositions(), seedExercises(), seedPrograms()]);
+/**
+ * Add any bundled test protocols not already present. Insert-only by id, like
+ * every other seed.
+ *
+ * Insert-only matters more here than anywhere else, and for the opposite
+ * reason. Elsewhere it protects the player's edits from an app update; here it
+ * protects *results* from a protocol update. A stored result means "19 of 30
+ * into a 5 m square at 20, 30 and 40 m" only because the protocol says so, so
+ * overwriting a protocol in place would retroactively change what every result
+ * against it claims. A protocol that has to change is a new row with a new id
+ * and slug, and the old one is retired — see `seed/tests.ts`.
+ */
+export async function seedTestProtocols(): Promise<void> {
+	const existing = new Set(await db.test_protocols.toCollection().primaryKeys());
+	const missing = SEED_TEST_PROTOCOLS.filter((p) => !existing.has(p.id));
+	if (missing.length === 0) return;
+	await db.test_protocols.bulkAdd(missing);
 }
 
-export type { Repo, NewRepLog, DrillInput } from './repo';
+/** Every bundled seed, for the one call the app layout makes on boot. */
+export async function seedReferenceData(): Promise<void> {
+	await Promise.all([
+		seedDrills(),
+		seedPositions(),
+		seedExercises(),
+		seedPrograms(),
+		seedTestProtocols()
+	]);
+}
+
+export type { Repo, NewRepLog, NewTestResult, DrillInput } from './repo';

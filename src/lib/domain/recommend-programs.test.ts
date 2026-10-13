@@ -34,6 +34,7 @@ function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 		sessions_per_week: 3,
 		available_days: [],
 		equipment_access: [],
+		retest_interval_weeks: 4,
 		schema_version: 3,
 		created_at: '2026-08-01T00:00:00.000Z',
 		updated_at: '2026-08-01T00:00:00.000Z',

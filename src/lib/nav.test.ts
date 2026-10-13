@@ -9,6 +9,7 @@ describe('isNavActive', () => {
 
 	it('counts a nested route as active for its top-level link', () => {
 		expect(isNavActive('/train', '/train/aerobic-base/3')).toBe(true);
+		expect(isNavActive('/tests', '/tests/kicking-accuracy-senior')).toBe(true);
 	});
 });
 
@@ -16,6 +17,9 @@ describe('nextTabHref', () => {
 	it('walks forward and back along the bottom bar', () => {
 		expect(nextTabHref('/', 'left')).toBe('/log');
 		expect(nextTabHref('/log', 'left')).toBe('/train');
+		expect(nextTabHref('/train', 'left')).toBe('/tests');
+		expect(nextTabHref('/tests', 'left')).toBe('/progress');
+		expect(nextTabHref('/tests', 'right')).toBe('/train');
 		expect(nextTabHref('/train', 'right')).toBe('/log');
 		expect(nextTabHref('/log', 'right')).toBe('/');
 	});
@@ -33,6 +37,8 @@ describe('nextTabHref', () => {
 	it('ignores nested pages, where sideways means back', () => {
 		expect(nextTabHref('/train/aerobic-base', 'left')).toBeNull();
 		expect(nextTabHref('/drills/drop-punt-20m', 'right')).toBeNull();
+		// Mid-test, a sideways flick must not walk off the runner.
+		expect(nextTabHref('/tests/set-shots', 'left')).toBeNull();
 	});
 });
 

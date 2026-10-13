@@ -102,7 +102,10 @@
 		}
 	}
 
-	function dayState(day: PlannedDay): 'done' | 'session' | 'skills' | 'rest' {
+	function dayState(day: PlannedDay): 'done' | 'session' | 'retest' | 'skills' | 'rest' {
+		// A due retest outranks a session in the strip: it is the one thing in the
+		// week that cannot be made up later without costing the comparison.
+		if (day.retest) return 'retest';
 		if (day.sessions.length > 0) {
 			return day.sessions.every((s) => s.done) ? 'done' : 'session';
 		}
@@ -180,14 +183,17 @@
 						class="flex h-5 w-5 items-center justify-center rounded-full text-[10px] {state ===
 						'done'
 							? 'preset-filled-primary-500'
-							: state === 'session'
-								? 'preset-tonal-primary'
-								: state === 'skills'
-									? 'border border-dashed border-surface-300-700'
-									: ''}"
+							: state === 'retest'
+								? 'border-2 border-primary-500'
+								: state === 'session'
+									? 'preset-tonal-primary'
+									: state === 'skills'
+										? 'border border-dashed border-surface-300-700'
+										: ''}"
 						aria-hidden="true"
 					>
-						{#if state === 'done'}✓{:else if state === 'session'}{day.sessions.length}{/if}
+						{#if state === 'done'}✓{:else if state === 'retest'}◎{:else if state === 'session'}{day
+								.sessions.length}{/if}
 					</span>
 				</button>
 			{/each}
@@ -205,6 +211,27 @@
 				<p class="mb-2 text-xs tracking-wide text-surface-600-400 uppercase">
 					{WEEKDAY_LABELS[current.weekday]}{current.isToday ? ' · today' : ''}
 				</p>
+
+				{#if current.retest}
+					<a
+						href="/tests"
+						class="tap-target mb-2 block rounded-xl border border-primary-500 bg-surface-100-900 p-3"
+					>
+						<div class="flex items-baseline justify-between gap-3">
+							<span class="font-semibold">
+								{current.retest.round === 1
+									? 'Baseline testing'
+									: `Round ${current.retest.round} retest`}
+							</span>
+							<span class="shrink-0 text-xs tabular-nums text-surface-500">
+								{current.retest.done} of {current.retest.total}
+							</span>
+						</div>
+						<span class="mt-1 block text-xs text-surface-500">
+							{current.retest.outstanding.map((p) => p.name).join(' · ')}
+						</span>
+					</a>
+				{/if}
 
 				{#if current.sessions.length > 0}
 					<ul class="space-y-2">
@@ -281,7 +308,8 @@
 							<p class="mt-2 text-xs text-primary-500">✓ Reps logged</p>
 						{/if}
 					</div>
-				{:else}
+				{:else if !current.retest}
+					<!-- A retest-only day is scheduled, so it must not also read as empty. -->
 					<p
 						class="rounded-xl border border-dashed border-surface-200-800 p-4 text-center text-sm text-surface-500"
 					>

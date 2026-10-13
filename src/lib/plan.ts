@@ -7,6 +7,7 @@ import {
 	type ActiveProgram,
 	type PlannedDay
 } from '$lib/domain/schedule';
+import { loadTestPhase, type LoadedTestPhase } from '$lib/skill-tests';
 import type { IsoDate, PlayerProfile } from '$lib/types';
 import { localDate, weekDates } from '$lib/util/time';
 
@@ -29,6 +30,15 @@ export interface LoadedWeekPlan {
 	range: { from: IsoDate; to: IsoDate } | null;
 	/** The player-level load modifier, for rendering prescriptions. */
 	adjust: number;
+	/**
+	 * The testing picture, which this had to load anyway to place a due retest.
+	 *
+	 * Handed back so the Today screen can render the retest card from the same
+	 * read instead of asking for the protocols and results a second time — the
+	 * two would be a tick apart and could disagree about whether a round is
+	 * still outstanding. Null before onboarding.
+	 */
+	tests: LoadedTestPhase | null;
 }
 
 /**
@@ -45,15 +55,16 @@ export async function loadWeekPlan(anchor?: IsoDate): Promise<LoadedWeekPlan> {
 
 	const profile = await repo.getProfile();
 	if (!profile) {
-		return { profile: undefined, days: [], monday, today, range: null, adjust: 1 };
+		return { profile: undefined, days: [], monday, today, range: null, adjust: 1, tests: null };
 	}
 
-	const [enrolments, positions, drills, logs, reps] = await Promise.all([
+	const [enrolments, positions, drills, logs, reps, tests] = await Promise.all([
 		repo.activeEnrolments(),
 		repo.listPositions(),
 		repo.listDrills(),
 		repo.listSessionLogs({ from: monday, to: sunday }),
-		repo.listRepLogs({ from: monday, to: sunday })
+		repo.listRepLogs({ from: monday, to: sunday }),
+		loadTestPhase()
 	]);
 
 	const plans = await Promise.all(
@@ -75,7 +86,8 @@ export async function loadWeekPlan(anchor?: IsoDate): Promise<LoadedWeekPlan> {
 		programs: active,
 		logs,
 		drills: recommended,
-		repDates: reps.map((r) => r.local_date)
+		repDates: reps.map((r) => r.local_date),
+		retests: tests.cycle ?? undefined
 	});
 
 	return {
@@ -84,6 +96,7 @@ export async function loadWeekPlan(anchor?: IsoDate): Promise<LoadedWeekPlan> {
 		monday,
 		today,
 		range: browsableRange(active),
-		adjust: loadModifierFor(profile)
+		adjust: loadModifierFor(profile),
+		tests
 	};
 }

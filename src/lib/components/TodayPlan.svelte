@@ -63,12 +63,38 @@
 	what belongs on the launch screen is the one question a player opens the app
 	to ask — what am I doing right now.
 -->
-{#if day && (day.sessions.length > 0 || day.skills)}
+{#if day && (day.sessions.length > 0 || day.skills || day.retest)}
 	<section class="mt-6">
 		<div class="mb-2 flex items-baseline justify-between gap-3">
 			<h2 class="text-sm font-semibold tracking-wide text-surface-600-400 uppercase">On today</h2>
 			<a href="/train" class="shrink-0 text-xs font-medium text-primary-500">Week</a>
 		</div>
+
+		{#if day.retest}
+			<!--
+				First in the day, ahead of the session. The test is the measurement
+				everything else gets judged by, and it wants fresh legs.
+			-->
+			<a
+				href="/tests"
+				class="tap-target mb-2 block rounded-xl border border-primary-500 bg-surface-100-900 p-3"
+			>
+				<div class="flex items-baseline justify-between gap-3">
+					<span class="font-semibold">
+						{day.retest.round === 1 ? 'Baseline testing' : `Round ${day.retest.round} retest`}
+					</span>
+					<span class="shrink-0 text-xs tabular-nums text-surface-500">
+						{day.retest.done} of {day.retest.total}
+					</span>
+				</div>
+				<span class="mt-1 block text-xs text-surface-500">
+					{day.retest.outstanding.map((p) => p.name).join(' · ')}
+				</span>
+				{#if day.retest.overdue}
+					<span class="mt-1 block text-xs text-primary-500">Overdue — sit it when you can</span>
+				{/if}
+			</a>
+		{/if}
 
 		{#if day.sessions.length > 0}
 			<ul class="space-y-2">

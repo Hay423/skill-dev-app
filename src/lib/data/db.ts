@@ -1,5 +1,10 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import { AGE_GROUPS, LOCAL_USER_ID, PLAYER_PROFILE_SCHEMA_VERSION } from '$lib/types';
+import {
+	AGE_GROUPS,
+	DEFAULT_RETEST_INTERVAL_WEEKS,
+	LOCAL_USER_ID,
+	PLAYER_PROFILE_SCHEMA_VERSION
+} from '$lib/types';
 import { localDate } from '$lib/util/time';
 import { SEED_DRILLS } from './seed/drills';
 import type {
@@ -15,6 +20,8 @@ import type {
 	ProgramWeek,
 	RepLog,
 	Session,
+	TestProtocol,
+	TestResult,
 	TrainingProgram,
 	Uuid
 } from '$lib/types';
@@ -46,6 +53,8 @@ export class SkillDevDb extends Dexie {
 	program_items!: EntityTable<ProgramItem, 'id'>;
 	program_enrolments!: EntityTable<ProgramEnrolment, 'id'>;
 	program_session_logs!: EntityTable<ProgramSessionLog, 'id'>;
+	test_protocols!: EntityTable<TestProtocol, 'id'>;
+	test_results!: EntityTable<TestResult, 'id'>;
 
 	constructor() {
 		super('skill-dev');
@@ -259,7 +268,7 @@ export class SkillDevDb extends Dexie {
 			})
 			.upgrade(async (tx) => {
 				await Promise.all(
-					OWNED_TABLES.map((table) =>
+					OWNED_TABLES_AT_V7.map((table) =>
 						tx
 							.table(table)
 							.toCollection()
@@ -404,6 +413,56 @@ export class SkillDevDb extends Dexie {
 			.upgrade(async (tx) => {
 				await Promise.all(PROGRAM_CONTENT_TABLES.map((table) => tx.table(table).clear()));
 			});
+
+		// v11 adds skill tests: the protocols every player is tested against and
+		// the results they record.
+		//
+		// `test_protocols` is reference content like drills and programs — it
+		// ships with the app, is identical for everyone and is never pushed, so
+		// it carries no owner. `test_results` is the sixth user-owned table and
+		// follows the checklist in CLAUDE.md: it extends `Owned` and `SyncMeta`,
+		// indexes `_dirty` and `user_id`, and is listed in `OWNED_TABLES` here
+		// and in `SyncableTable` in `$lib/types`.
+		//
+		// `protocol_slug` is indexed rather than `protocol_id` being the only
+		// handle, because every query the app runs is "the history of this test"
+		// and the slug is what the route has in hand. `local_date` is indexed for
+		// the same reason `rep_logs.local_date` is: the progress views slice by
+		// window, and `recorded_at` orders the rolling-baseline walk.
+		//
+		// The profile gains `retest_interval_weeks`. Four weeks is the agreed
+		// default — long enough for training to show, short enough for a trend to
+		// have points in it — and it is backfilled rather than left undefined so
+		// the retest date is never computed from a missing number. An existing
+		// row gets the default; nobody has chosen anything else yet.
+		this.version(11)
+			.stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty',
+				// New.
+				test_protocols: 'id, &slug, family, category',
+				test_results: 'id, user_id, protocol_id, protocol_slug, local_date, recorded_at, _dirty'
+			})
+			.upgrade(async (tx) => {
+				await tx
+					.table('player_profile')
+					.toCollection()
+					.modify((profile) => {
+						profile.retest_interval_weeks = DEFAULT_RETEST_INTERVAL_WEEKS;
+						profile.schema_version = PLAYER_PROFILE_SCHEMA_VERSION;
+					});
+			});
 	}
 }
 
@@ -412,7 +471,30 @@ export class SkillDevDb extends Dexie {
  * the same set, because "is owned by a user" and "gets pushed to the server"
  * are the same property here.
  */
-const OWNED_TABLES = [
+export const OWNED_TABLES = [
+	'sessions',
+	'rep_logs',
+	'player_profile',
+	'program_enrolments',
+	'program_session_logs',
+	'test_results'
+] as const;
+
+/**
+ * The owned tables **as they were at v7**, frozen.
+ *
+ * A migration has to name the schema it runs against, not the schema the app
+ * ends up with. An upgrade transaction only has the tables its own version
+ * defines, so a device coming from v6 runs this backfill before `test_results`
+ * exists — and `tx.table('test_results')` inside it would throw and take the
+ * whole upgrade chain down, leaving the database unopenable rather than merely
+ * unmigrated.
+ *
+ * So this list stays as it is forever, and `OWNED_TABLES` above grows. Any
+ * future migration that walks "every owned table" needs its own snapshot for
+ * the same reason.
+ */
+const OWNED_TABLES_AT_V7 = [
 	'sessions',
 	'rep_logs',
 	'player_profile',

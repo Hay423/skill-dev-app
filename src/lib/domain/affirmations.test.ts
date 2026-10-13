@@ -4,7 +4,8 @@ import {
 	STREAK_MILESTONES,
 	type AffirmationContext,
 	type RepsEvent,
-	type SessionEvent
+	type SessionEvent,
+	type TestEvent
 } from './affirmations';
 
 function reps(overrides: Partial<RepsEvent> = {}): RepsEvent {
@@ -159,5 +160,114 @@ describe('routine lines', () => {
 			)
 		);
 		expect(headlines.size).toBeGreaterThan(1);
+	});
+});
+
+describe('skill tests', () => {
+	function test(overrides: Partial<TestEvent> = {}): TestEvent {
+		return {
+			kind: 'test',
+			test_name: 'Kicking accuracy',
+			total: 19,
+			max: 30,
+			gain: null,
+			improved: false,
+			is_baseline: true,
+			done_in_phase: 1,
+			tests_in_phase: 4,
+			round: 1,
+			...overrides
+		};
+	}
+
+	it('calls the first result on a test a baseline, and says what is left', () => {
+		const line = affirmation(ctx({ event: test() }));
+		expect(line.headline).toContain('Baseline set');
+		expect(line.detail).toContain('19 from 30');
+		expect(line.detail).toContain('3 tests to go');
+		expect(line.milestone).toBe(true);
+	});
+
+	it('does not say "tests" when one is left', () => {
+		const line = affirmation(ctx({ event: test({ done_in_phase: 3, tests_in_phase: 4 }) }));
+		expect(line.detail).toContain('1 test to go');
+	});
+
+	it('marks the whole phase being finished above anything else', () => {
+		const line = affirmation(
+			ctx({ event: test({ done_in_phase: 4, tests_in_phase: 4, improved: true, gain: 0.5 }) })
+		);
+		expect(line.headline).toContain("Baseline's done");
+		expect(line.milestone).toBe(true);
+	});
+
+	it('leads with the gain when a result clears the margin', () => {
+		const line = affirmation(
+			ctx({
+				event: test({ is_baseline: false, improved: true, gain: 0.18, done_in_phase: 2 })
+			})
+		);
+		expect(line.headline).toContain('Up 18%');
+		expect(line.detail).toMatch(/new baseline/i);
+		expect(line.milestone).toBe(true);
+	});
+
+	it('beats "first one in the book" to it, because a test has a number to report', () => {
+		const line = affirmation(ctx({ is_first: true, event: test() }));
+		expect(line.headline).toContain('Baseline set');
+	});
+
+	it('reports a result below baseline plainly rather than softening it', () => {
+		const line = affirmation(
+			ctx({ event: test({ is_baseline: false, gain: -0.12, done_in_phase: 2 }) })
+		);
+		expect(line.milestone).toBe(false);
+		expect(line.detail).toContain('12% down on baseline');
+	});
+
+	it('says nothing about a percentage for a timed test with no ceiling', () => {
+		const line = affirmation(
+			ctx({ event: test({ test_name: 'Handball speed', total: 27, max: null }) })
+		);
+		expect(line.detail).toContain('27 on Handball speed');
+		expect(line.detail).not.toContain('from');
+	});
+});
+
+describe('finishing a round', () => {
+	function test(overrides: Partial<TestEvent> = {}): TestEvent {
+		return {
+			kind: 'test',
+			test_name: 'Kicking accuracy',
+			total: 22,
+			max: 30,
+			gain: 0.12,
+			improved: true,
+			is_baseline: false,
+			done_in_phase: 4,
+			tests_in_phase: 4,
+			round: 3,
+			...overrides
+		};
+	}
+
+	it('calls out the round, not the baseline, from round two on', () => {
+		const line = affirmation(ctx({ event: test() }));
+		expect(line.headline).toContain('Round 3 is in');
+		expect(line.detail).toContain('round 2');
+		expect(line.milestone).toBe(true);
+	});
+
+	it('still calls round one the baseline', () => {
+		const line = affirmation(ctx({ event: test({ round: 1 }) }));
+		expect(line.headline).toContain("Baseline's done");
+	});
+
+	it('says how many are left in the round mid-way through', () => {
+		const line = affirmation(
+			ctx({ event: test({ done_in_phase: 2, tests_in_phase: 4, improved: false, gain: 0.02 }) })
+		);
+		expect(line.milestone).toBe(false);
+		expect(line.detail).toContain('2 more for round 3');
 	});
 });

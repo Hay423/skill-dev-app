@@ -9,7 +9,10 @@
 		totals,
 		totalsByCategory
 	} from '$lib/domain/stats';
+	import { formatGain, rollingBaseline } from '$lib/domain/tests';
+	import { daysUntilDue } from '$lib/domain/retest';
 	import { SKILL_CATEGORY_LABELS, type RepLog } from '$lib/types';
+	import { loadTestPhase, type LoadedTestPhase } from '$lib/skill-tests';
 	import { addDays, localDate } from '$lib/util/time';
 
 	const today = localDate();
@@ -18,6 +21,27 @@
 	let windowDays = $state<(typeof WINDOWS)[number]>(28);
 	let logs = $state<RepLog[]>([]);
 	let loading = $state(true);
+	let tests = $state<LoadedTestPhase | null>(null);
+
+	// Loaded once, outside the window selector: a test result is a landmark, not
+	// something to slice by the last seven days.
+	$effect(() => {
+		loadTestPhase().then((loaded) => (tests = loaded));
+	});
+
+	const testPhase = $derived(tests?.phase ?? null);
+	const cycle = $derived(tests?.cycle ?? null);
+
+	/** Each sat test with its latest result measured against the rolling baseline. */
+	const testRows = $derived(
+		(testPhase?.tests ?? [])
+			.filter((test) => test.done)
+			.map((test) => {
+				const walked = rollingBaseline(test.protocol, test.history);
+				return { test, latest: walked.at(-1) };
+			})
+			.filter((row) => row.latest !== undefined)
+	);
 
 	$effect(() => {
 		const days = windowDays;
@@ -112,5 +136,92 @@
 				</li>
 			{/each}
 		</ul>
+	</section>
+{/if}
+
+<!--
+	Skill tests sit outside the window selector and outside the "no reps logged"
+	branch above. A result is a landmark rather than a daily tally, and a player
+	who has sat their baseline but not logged a set this week should still see it.
+-->
+{#if testPhase && !testPhase.blocked}
+	<section class="mt-8">
+		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
+			Skill tests
+		</h2>
+
+		{#if !testPhase.complete}
+			<!--
+				Locked, and honest about why. This panel is the one thing the testing
+				phase actually gates: an accuracy figure next to nothing is a number,
+				and the point of the baseline is to turn it into a comparison.
+			-->
+			<div class="rounded-xl border border-dashed border-surface-200-800 p-6 text-center">
+				<p class="text-sm text-surface-600-400">
+					{testPhase.done} of {testPhase.required} tests sat. Finish your baseline and this becomes a
+					comparison instead of a number.
+				</p>
+				<a
+					href="/tests"
+					class="tap-target preset-filled-primary-500 mt-4 inline-flex items-center justify-center rounded-xl px-4 py-3 font-semibold"
+				>
+					Go to tests
+				</a>
+			</div>
+		{:else}
+			{@const outstanding = new Set((cycle?.outstanding ?? []).map((p) => p.slug))}
+			<ul class="space-y-2">
+				{#each testRows as row (row.test.protocol.id)}
+					<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
+						<a href="/tests/{row.test.protocol.slug}" class="tap-target block">
+							<div class="flex items-center justify-between gap-3">
+								<span class="min-w-0 truncate font-medium">{row.test.protocol.name}</span>
+								<span class="shrink-0 font-semibold tabular-nums">
+									{row.latest?.score.total}{row.latest?.score.max === null
+										? ''
+										: `/${row.latest?.score.max}`}
+								</span>
+							</div>
+							<p class="mt-1 text-xs text-surface-500">
+								{row.test.latest?.local_date}
+								{#if row.latest?.baseline}
+									· <span class={row.latest.improved ? 'text-primary-500' : ''}
+										>{formatGain(row.latest.gain)} on baseline</span
+									>
+								{:else}
+									· baseline
+								{/if}
+								{#if outstanding.has(row.test.protocol.slug)}
+									· <span class="text-primary-500">due this round</span>
+								{/if}
+							</p>
+						</a>
+					</li>
+				{/each}
+			</ul>
+
+			{#if cycle}
+				<a
+					href="/tests/rounds"
+					class="tap-target preset-outlined-surface-200-800 mt-3 flex items-center justify-center rounded-xl py-2 text-sm font-semibold"
+				>
+					{cycle.rounds.length > 1
+						? `Round-by-round improvement · ${cycle.rounds.length} rounds`
+						: 'Round-by-round improvement'}
+				</a>
+				<p class="mt-2 text-xs text-surface-500">
+					{#if cycle.due}
+						Round {cycle.current_number} is due now.
+					{:else if daysUntilDue(cycle, today) !== null}
+						Round {cycle.current_number} in {daysUntilDue(cycle, today)} days.
+					{/if}
+				</p>
+			{/if}
+
+			<p class="mt-3 text-xs text-surface-500">
+				Measured against yourself only. There is no published benchmark for your age group and level
+				in the app yet, and a borrowed one from another group would be worse than none.
+			</p>
+		{/if}
 	</section>
 {/if}

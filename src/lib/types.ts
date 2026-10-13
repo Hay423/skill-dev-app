@@ -352,11 +352,16 @@ export interface PlayerProfile extends Owned, SyncMeta {
 	sessions_per_week: number;
 	available_days: Weekday[];
 	equipment_access: EquipmentAccess[];
+	/**
+	 * Weeks between skill retests. The player's choice, defaulting to
+	 * `DEFAULT_RETEST_INTERVAL_WEEKS` — see the skill tests section below.
+	 */
+	retest_interval_weeks: number;
 	/** Bumped when this shape changes, so a future migration can adapt old rows. */
 	schema_version: number;
 }
 
-export const PLAYER_PROFILE_SCHEMA_VERSION = 3;
+export const PLAYER_PROFILE_SCHEMA_VERSION = 4;
 
 /** The constant singleton id `PlayerProfile` rows are keyed by until auth lands. */
 export const SINGLETON_PROFILE_ID = 'me';
@@ -582,6 +587,212 @@ export interface ProgramSessionLog extends Owned, SyncMeta {
 	completed_at: IsoDateTime | null;
 }
 
-/** Anything the sync layer pushes. Drills are excluded — they are read-only. */
+/**
+ * Anything the sync layer pushes. Reference content is excluded — drills,
+ * positions, exercises, programs and test protocols all ship with the app and
+ * are read-only.
+ */
 export type SyncableTable =
-	'sessions' | 'rep_logs' | 'player_profile' | 'program_enrolments' | 'program_session_logs';
+	| 'sessions'
+	| 'rep_logs'
+	| 'player_profile'
+	| 'program_enrolments'
+	| 'program_session_logs'
+	| 'test_results';
+
+/* ------------------------------------------------------------------------- *
+ * Skill tests
+ *
+ * A test is not a drill. A drill is something to practise, and its copy can be
+ * improved whenever someone thinks of a better coaching point. A test is a
+ * **protocol**: a fixed set of attempts, at fixed distances, scored by a fixed
+ * rule, so that two results are comparable across months and across players.
+ *
+ * That makes a published protocol immutable in a stronger sense than a drill
+ * id. Changing a drill's wording costs nothing; changing a protocol's
+ * distances, attempt count or scoring silently invalidates every result ever
+ * recorded against it, because the number stored on an old row no longer means
+ * what the new protocol says it means. A protocol that needs to change is a
+ * **new protocol with a new id and slug** — never an edit.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * The three skill tests the app measures progress with.
+ *
+ * A family is the thing a player thinks of as "the kicking test". It can hold
+ * more than one protocol: kicking has a junior and a senior tier (only one of
+ * which any player sits), and handball has an accuracy part and a speed part
+ * (both of which they sit). The family is what the UI groups under one
+ * heading; the protocol is what gets sat and scored.
+ */
+export const TEST_FAMILIES = ['kicking_accuracy', 'set_shots', 'handball'] as const;
+export type TestFamily = (typeof TEST_FAMILIES)[number];
+
+export const TEST_FAMILY_LABELS: Record<TestFamily, string> = {
+	kicking_accuracy: 'Kicking accuracy',
+	set_shots: 'Goalkicking set shots',
+	handball: 'Handball'
+};
+
+/**
+ * How a protocol turns attempts into a score.
+ *
+ * - `hit_miss` — one point for a hit, nothing for a miss. Kicking and handball
+ *   accuracy.
+ * - `goal_behind_miss` — scored like a real game: goal 6, behind 1, miss 0, so
+ *   the result reads as a score line rather than a percentage.
+ * - `timed_hits` — no fixed attempts at all; the result is how many hits fit
+ *   inside a fixed window. Unbounded, so it has a total and no maximum.
+ */
+export const TEST_SCORINGS = ['hit_miss', 'goal_behind_miss', 'timed_hits'] as const;
+export type TestScoring = (typeof TEST_SCORINGS)[number];
+
+/** What one set shot is worth. A result reads as a score line: 9.4.2. */
+export const GOAL = 6;
+export const BEHIND = 1;
+export const MISS = 0;
+
+/** Which tier of a two-tier test a protocol is. `open` = the test has one tier. */
+export const TEST_TIERS = ['junior', 'senior', 'open'] as const;
+export type TestTier = (typeof TEST_TIERS)[number];
+
+/** Left or right, of whichever limb the protocol measures. */
+export type TestSide = 'left' | 'right';
+
+/**
+ * One attempt slot in a protocol — the seventh kick, at 30 m, off the left
+ * foot.
+ *
+ * `index` is the slot's permanent identity, not its array position: a stored
+ * result holds one outcome per index, so renumbering the slots would re-label
+ * every outcome ever recorded. Same rule as a drill id.
+ *
+ * `distance_m`, `side` and `spot` are what a result is broken down by. They are
+ * nullable because not every test has every dimension — a set shot has a spot
+ * and no side, a timed wall test has no slots at all — and the breakdown is
+ * derived from whichever of them the protocol actually populates rather than
+ * configured a second time.
+ */
+export interface TestAttemptSpec {
+	index: number;
+	distance_m: number | null;
+	side: TestSide | null;
+	/** Named position, for set shots: 'Directly in front', 'Left pocket'. */
+	spot: string | null;
+}
+
+/**
+ * Reference content: a test protocol. Ships with the app, identical for
+ * everyone, never owned and never pushed — same as drills, positions and
+ * programs.
+ */
+export interface TestProtocol {
+	id: Uuid;
+	slug: string;
+	name: string;
+	family: TestFamily;
+	tier: TestTier;
+	/** The skill it measures, so a result sits alongside the rep logs for it. */
+	category: SkillCategory;
+	/**
+	 * The age bands that sit this protocol. An explicit list rather than a
+	 * minimum, because a tier has a ceiling as well as a floor — a senior does
+	 * not sit the junior test — and because this is the single rule deciding
+	 * which tier a player is shown.
+	 */
+	age_groups: AgeGroup[];
+	scoring: TestScoring;
+	summary: string;
+	setup: string;
+	/** The protocol itself: the rules that make results comparable. Immutable. */
+	rules: string[];
+	/** Display copy — what to bring. */
+	equipment: string[];
+	/** Structured, for the "can this player sit it yet" check. */
+	equipment_required: EquipmentAccess[];
+	duration_minutes: number;
+	/** Every attempt, in the order they are taken. Empty for `timed_hits`. */
+	attempts: TestAttemptSpec[];
+	/** The window for `timed_hits`, in seconds. Null for every other scoring. */
+	window_seconds: number | null;
+	/**
+	 * The other tier of the same test, by slug — the junior protocol names the
+	 * senior one and vice versa, so the tier-transition conversion can find its
+	 * counterpart. Null on a single-tier test.
+	 */
+	paired_slug: string | null;
+}
+
+/** One attempt's outcome: 0/1 for hit/miss, 0/1/6 for a set shot. */
+export interface TestAttemptResult {
+	/** The `TestAttemptSpec.index` this outcome belongs to. */
+	index: number;
+	score: number;
+}
+
+/**
+ * A sat test. User-owned, soft-deleted and sync-stamped like every other
+ * player row.
+ *
+ * The **parts** are stored, not a total: 30 hit/miss outcomes tagged by foot
+ * and distance, or 15 shots tagged by spot. Every number the app shows —
+ * overall accuracy, weak foot versus strong foot, 40 m versus 20 m, 10% over
+ * baseline — is derived from them in `domain/tests.ts`. A stored total would
+ * answer one question and lose the rest.
+ */
+export interface TestResult extends Owned, SyncMeta {
+	id: Uuid;
+	protocol_id: Uuid;
+	/**
+	 * Denormalised from the protocol so a result can be grouped and filtered
+	 * without a join, and so history stays readable if a protocol is ever
+	 * retired. A protocol's slug never changes, so this cannot drift.
+	 */
+	protocol_slug: string;
+	recorded_at: IsoDateTime;
+	/** Local calendar day, for the same reason `RepLog.local_date` is. */
+	local_date: IsoDate;
+	attempts: TestAttemptResult[];
+	/** Hits inside the window, for `timed_hits`. Null for every other scoring. */
+	timed_hits: number | null;
+	/**
+	 * The rolling baseline this result was measured against, or null when it is
+	 * itself the baseline.
+	 *
+	 * Stamped at write time from `rollingBaseline` in `domain/tests.ts`, which
+	 * is also what the UI reads — so this records the comparison that was made
+	 * rather than being a second source of truth. It is stored because the
+	 * aggregate "improved by 10%" metric is meant to be computed server-side
+	 * from synced rows, which have no local history in hand.
+	 */
+	baseline_result_id: Uuid | null;
+	/**
+	 * 1 when this row is not a sat test but an estimated seed point, converted
+	 * from the other tier at an age-group transition.
+	 *
+	 * Always 0 on a stored row: the seed point is derived on read by
+	 * `tierSeedResult` rather than written. See the comment there for why.
+	 */
+	estimated: 0 | 1;
+	/** The result an estimated seed point was converted from. */
+	converted_from_result_id: Uuid | null;
+	notes: string | null;
+}
+
+/**
+ * How often the app asks for a retest. The player's choice, defaulting to four
+ * weeks — long enough for training to show, short enough that a trend has
+ * points in it.
+ */
+export const RETEST_INTERVAL_WEEKS = [2, 4, 6, 8, 12] as const;
+export const DEFAULT_RETEST_INTERVAL_WEEKS = 4;
+
+/**
+ * The relative gain over baseline that counts as "improved" — 10%, the
+ * product's own outcome metric.
+ *
+ * Relative, not percentage points: 10/30 to 11/30 is a 10% improvement on 33%,
+ * and 24/30 to 27/30 is the same 10% on 80%, which is the harder thing to do
+ * and the right thing to credit equally.
+ */
+export const IMPROVEMENT_THRESHOLD = 0.1;

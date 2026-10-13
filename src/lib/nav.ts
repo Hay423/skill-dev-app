@@ -14,17 +14,24 @@ export const NAV_LINKS: NavLink[] = [
 	{ href: '/drills', label: 'Drills', icon: '▦' },
 	{ href: '/log', label: 'Log', icon: '＋' },
 	{ href: '/train', label: 'Train', icon: '⚡' },
+	{ href: '/tests', label: 'Tests', icon: '🎯' },
 	{ href: '/progress', label: 'Progress', icon: '📈' },
 	{ href: '/profile', label: 'Profile', icon: '☺' }
 ];
 
 /**
  * The pages that stay one tap away on every screen: the two logging loops
- * (skills, strength/running) plus the two places you check on progress. Drills
- * and Profile move to the burger menu — both are lower-frequency, and both
- * stay reachable from links inside the pages that remain.
+ * (skills, strength/running), the tests, and the place you check on progress.
+ * Drills and Profile move to the burger menu — both are lower-frequency, and
+ * both stay reachable from links inside the pages that remain.
+ *
+ * Tests earns a tab rather than living under Progress because measurement is
+ * the thing the whole product rests on: every player sits the three tests once
+ * before anything else can claim they are improving, and then again every few
+ * weeks. Burying the retest two taps deep is how a four-week cadence quietly
+ * becomes never.
  */
-export const BOTTOM_NAV_HREFS = ['/', '/log', '/train', '/progress'];
+export const BOTTOM_NAV_HREFS = ['/', '/log', '/train', '/tests', '/progress'];
 
 /** A nested route (e.g. `/train/[slug]`) counts as active for its top-level link. */
 export function isNavActive(href: string, pathname: string): boolean {

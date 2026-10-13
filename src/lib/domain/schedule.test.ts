@@ -24,6 +24,8 @@ import {
 	weekProgress,
 	type ActiveProgram
 } from './schedule';
+import { SEED_TEST_PROTOCOLS } from '$lib/data/seed/tests';
+import type { RetestCycle } from './retest';
 
 // 2026-09-14 is a Monday; the whole suite is anchored to that week so the
 // weekday of every date in it is obvious on sight.
@@ -47,6 +49,7 @@ function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 		sessions_per_week: 3,
 		available_days: [],
 		equipment_access: [],
+		retest_interval_weeks: 4,
 		schema_version: 3,
 		created_at: '2026-09-01T00:00:00.000Z',
 		updated_at: '2026-09-01T00:00:00.000Z',
@@ -469,5 +472,184 @@ describe('planWeek — masters', () => {
 
 		expect(days('senior')).toBe(5);
 		expect(days('masters')).toBe(2);
+	});
+});
+
+describe('planWeek — retest placement', () => {
+	const KICK = SEED_TEST_PROTOCOLS.find((p) => p.slug === 'kicking-accuracy-senior')!;
+	const SHOTS = SEED_TEST_PROTOCOLS.find((p) => p.slug === 'set-shots')!;
+
+	/** A cycle due on `due_on` with `outstanding` still to sit. */
+	function cycle(overrides: Partial<RetestCycle> = {}): RetestCycle {
+		return {
+			rounds: [],
+			interval_weeks: 4,
+			open: undefined,
+			current_number: 2,
+			outstanding: [KICK, SHOTS],
+			due_on: MON,
+			due: true,
+			last_complete: undefined,
+			...overrides
+		};
+	}
+
+	const everyDay = profile({
+		available_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+	});
+
+	function retestDay(days: ReturnType<typeof planWeek>): Weekday | undefined {
+		return days.find((d) => d.retest)?.weekday;
+	}
+
+	it('puts a due round on the first available day', () => {
+		const days = planWeek({
+			today: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle()
+		});
+		expect(retestDay(days)).toBe('mon');
+		expect(days[0].retest).toMatchObject({ round: 2, total: 2, done: 0, overdue: false });
+	});
+
+	it('takes a day clear of program sessions', () => {
+		// Three sessions across Mon/Wed/Fri, so the test goes to Tuesday rather
+		// than onto the back of a lift.
+		const days = planWeek({
+			today: MON,
+			profile: profile({ available_days: ['mon', 'tue', 'wed', 'thu', 'fri'] }),
+			programs: [active(makePlan('s', 'strength', 6, 3), MON)],
+			logs: [],
+			retests: cycle()
+		});
+		expect(retestDay(days)).toBe('tue');
+	});
+
+	it('doubles up rather than dropping it when every day is spoken for', () => {
+		const days = planWeek({
+			today: MON,
+			profile: profile({ available_days: ['mon', 'tue'] }),
+			programs: [active(makePlan('s', 'strength', 6, 2), MON)],
+			logs: [],
+			retests: cycle()
+		});
+		expect(retestDay(days)).toBe('mon');
+		expect(days[0].sessions.length).toBeGreaterThan(0);
+	});
+
+	it('never puts it on a day before it fell due', () => {
+		const days = planWeek({
+			today: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ due_on: THU })
+		});
+		expect(retestDay(days)).toBe('thu');
+	});
+
+	it('never puts it in the past', () => {
+		// Browsing the current week on a Wednesday: Monday has gone.
+		const days = planWeek({
+			today: WED,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ due_on: MON })
+		});
+		expect(retestDay(days)).toBe('wed');
+		expect(days[0].retest).toBeNull();
+	});
+
+	it('marks an overdue round as a catch-up', () => {
+		const days = planWeek({
+			today: WED,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ due_on: '2026-09-01' })
+		});
+		expect(days.find((d) => d.retest)?.retest?.overdue).toBe(true);
+	});
+
+	it('leaves it off a week it has not reached yet', () => {
+		const days = planWeek({
+			today: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ due_on: '2026-10-05' })
+		});
+		expect(days.every((d) => d.retest === null)).toBe(true);
+	});
+
+	it('leaves it off a past week', () => {
+		const days = planWeek({
+			today: '2026-10-05',
+			anchor: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ due_on: '2026-10-05' })
+		});
+		expect(days.every((d) => d.retest === null)).toBe(true);
+	});
+
+	it('shows nothing when no round is due, or when the round is already done', () => {
+		const notDue = planWeek({
+			today: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ due: false, outstanding: [] })
+		});
+		expect(notDue.every((d) => d.retest === null)).toBe(true);
+
+		const allSat = planWeek({
+			today: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ outstanding: [] })
+		});
+		expect(allSat.every((d) => d.retest === null)).toBe(true);
+	});
+
+	it('counts what is already in a part-done round', () => {
+		const open = {
+			number: 2,
+			started_on: MON,
+			completed_on: null,
+			results: [],
+			complete: false,
+			missing: [KICK]
+		};
+		// Two of the four already sat, kicking still to go.
+		open.results = [1, 2] as never[];
+		const days = planWeek({
+			today: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			retests: cycle({ open, outstanding: [KICK] })
+		});
+		expect(days[0].retest).toMatchObject({ done: 2, total: 3 });
+	});
+
+	it('takes the skills slot, since the test is the skills work', () => {
+		const days = planWeek({
+			today: MON,
+			profile: everyDay,
+			programs: [],
+			logs: [],
+			drills: [{ id: 'd1', slug: 'd1', name: 'Wall kicks', category: 'kicking' } as Drill],
+			retests: cycle()
+		});
+		expect(days[0].retest).not.toBeNull();
+		expect(days[0].skills).toBeNull();
+		// The other days still get their suggestions.
+		expect(days.filter((d) => d.skills !== null).length).toBeGreaterThan(0);
 	});
 });

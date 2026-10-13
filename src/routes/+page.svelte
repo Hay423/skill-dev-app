@@ -1,11 +1,13 @@
 <script lang="ts">
 	import StatCard from '$lib/components/StatCard.svelte';
+	import BaselineCard from '$lib/components/BaselineCard.svelte';
 	import RecommendedDrills from '$lib/components/RecommendedDrills.svelte';
 	import TodayPlan from '$lib/components/TodayPlan.svelte';
 	import { repo } from '$lib/data';
 	import { currentStreak, formatAccuracy, totals, totalsByCategory } from '$lib/domain/stats';
 	import { trainingDatesFromLogs, type PlannedDay } from '$lib/domain/schedule';
 	import { loadWeekPlan } from '$lib/plan';
+	import type { LoadedTestPhase } from '$lib/skill-tests';
 	import { SKILL_CATEGORY_LABELS, type ProgramSessionLog, type RepLog } from '$lib/types';
 	import { addDays, localDate } from '$lib/util/time';
 
@@ -14,6 +16,7 @@
 	let allLogs = $state<RepLog[]>([]);
 	let sessionLogs = $state<ProgramSessionLog[]>([]);
 	let planDays = $state<PlannedDay[]>([]);
+	let tests = $state<LoadedTestPhase | null>(null);
 	let loading = $state(true);
 
 	async function load() {
@@ -27,6 +30,10 @@
 		allLogs = logs;
 		sessionLogs = ticks;
 		planDays = plan.days;
+		// Taken off the plan rather than loaded again: the plan already read the
+		// protocols and results to place a due retest on a day, and two separate
+		// reads could disagree about whether a round is still outstanding.
+		tests = plan.tests;
 	}
 
 	$effect(() => {
@@ -70,6 +77,15 @@
 			Browse drills
 		</a>
 	</div>
+
+	<!--
+		Above the plan, deliberately. A round that is due is the one piece of work
+		the plan cannot replace: until it is sat, every other number on this page
+		is training with nothing to measure it against.
+	-->
+	{#if tests?.phase && tests.cycle}
+		<BaselineCard phase={tests.phase} cycle={tests.cycle} {today} />
+	{/if}
 
 	<TodayPlan days={planDays} {today} onchange={load} />
 

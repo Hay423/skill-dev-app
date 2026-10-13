@@ -1,4 +1,5 @@
 import {
+	DEFAULT_RETEST_INTERVAL_WEEKS,
 	PLAYER_PROFILE_SCHEMA_VERSION,
 	SINGLETON_PROFILE_ID,
 	type Drill,
@@ -11,13 +12,23 @@ import {
 	type RepLog,
 	type Session,
 	type SyncMeta,
+	type TestProtocol,
+	type TestResult,
 	type TrainingProgram,
 	type Uuid
 } from '$lib/types';
 import { localDate, newId, nowIso } from '$lib/util/time';
 import { db } from './db';
 import { programWeekOn } from '$lib/domain/schedule';
-import type { DrillInput, NewRepLog, ProfileInput, Repo, SessionProgressInput } from './repo';
+import { currentBaseline, isComplete } from '$lib/domain/tests';
+import type {
+	DrillInput,
+	NewRepLog,
+	NewTestResult,
+	ProfileInput,
+	Repo,
+	SessionProgressInput
+} from './repo';
 import { currentUserId } from './user';
 
 /** Lowercase, hyphenated, alphanumeric-only — matches the seed library's slugs. */
@@ -249,6 +260,10 @@ export class LocalRepo implements Repo {
 			sessions_per_week: input.sessions_per_week ?? 0,
 			available_days: input.available_days ?? [],
 			equipment_access: input.equipment_access ?? [],
+			retest_interval_weeks:
+				input.retest_interval_weeks ??
+				existing?.retest_interval_weeks ??
+				DEFAULT_RETEST_INTERVAL_WEEKS,
 			schema_version: PLAYER_PROFILE_SCHEMA_VERSION,
 			created_at: existing?.created_at ?? at,
 			updated_at: at,
@@ -450,6 +465,127 @@ export class LocalRepo implements Repo {
 			rows = await db.program_session_logs.toArray();
 		}
 		return rows.filter(notDeleted);
+	}
+
+	listTestProtocols(): Promise<TestProtocol[]> {
+		return db.test_protocols.toArray();
+	}
+
+	getTestProtocolBySlug(slug: string): Promise<TestProtocol | undefined> {
+		return db.test_protocols.where('slug').equals(slug).first();
+	}
+
+	/**
+	 * Record a sat test.
+	 *
+	 * Validation is deliberately strict here rather than left to the runner. A
+	 * result is the one row in the app whose meaning comes entirely from the
+	 * protocol it was taken against: a missing attempt, a duplicated slot or a
+	 * score of 3 on a hit/miss test is not a slightly wrong number, it is a row
+	 * that makes every comparison it takes part in wrong. The runner cannot be
+	 * the only thing standing between that and the trend line.
+	 */
+	async saveTestResult(input: NewTestResult): Promise<TestResult> {
+		const protocol = await db.test_protocols.get(input.protocol_id);
+		if (!protocol) throw new Error('Test protocol not found');
+
+		const slots = new Set(protocol.attempts.map((spec) => spec.index));
+		const seen = new Set<number>();
+		const legal = legalScores(protocol);
+		for (const attempt of input.attempts) {
+			if (!slots.has(attempt.index)) {
+				throw new Error(`Attempt ${attempt.index} is not part of ${protocol.slug}`);
+			}
+			if (seen.has(attempt.index)) {
+				throw new Error(`Attempt ${attempt.index} was recorded twice`);
+			}
+			if (!legal.includes(attempt.score)) {
+				throw new Error(`${attempt.score} is not a valid score for ${protocol.slug}`);
+			}
+			seen.add(attempt.index);
+		}
+		if (!isComplete(protocol, input.attempts)) {
+			throw new Error('Every attempt in the protocol must be scored');
+		}
+
+		const timed = protocol.scoring === 'timed_hits';
+		if (timed && (input.timed_hits === undefined || input.timed_hits === null)) {
+			throw new Error('A timed test needs a hit count');
+		}
+		if (timed && input.timed_hits! < 0) throw new Error('Hit count cannot be negative');
+
+		// The baseline is read from the history this result is about to join, by
+		// the same function the UI reads it with — so the stored id records the
+		// comparison that was actually shown, rather than being a second opinion.
+		const history = await this.listTestResults({ protocol_slug: protocol.slug });
+		const baseline = currentBaseline(protocol, history);
+
+		const at = input.recorded_at ?? nowIso();
+		const result: TestResult = {
+			id: newId(),
+			user_id: currentUserId(),
+			protocol_id: protocol.id,
+			protocol_slug: protocol.slug,
+			recorded_at: at,
+			local_date: localDate(at),
+			// Copied, not stored by reference: callers pass arrays out of Svelte 5
+			// `$state`, and a reactive proxy is not structured-cloneable. Same
+			// reasoning as `logSessionProgress`.
+			attempts: input.attempts.map((a) => ({ index: a.index, score: a.score })),
+			timed_hits: timed ? (input.timed_hits ?? 0) : null,
+			baseline_result_id: baseline?.id ?? null,
+			estimated: 0,
+			converted_from_result_id: null,
+			notes: input.notes ?? null,
+			...freshMeta(at)
+		};
+		await db.test_results.add(result);
+		return result;
+	}
+
+	async listTestResults(filter?: {
+		protocol_slug?: string;
+		from?: IsoDate;
+		to?: IsoDate;
+		limit?: number;
+	}): Promise<TestResult[]> {
+		let rows: TestResult[];
+		if (filter?.protocol_slug) {
+			rows = await db.test_results.where('protocol_slug').equals(filter.protocol_slug).toArray();
+		} else if (filter?.from || filter?.to) {
+			rows = await db.test_results
+				.where('local_date')
+				.between(filter.from ?? '0000-00-00', filter.to ?? '9999-99-99', true, true)
+				.toArray();
+		} else {
+			rows = await db.test_results.toArray();
+		}
+
+		rows = rows.filter(notDeleted);
+		if (filter?.protocol_slug && (filter.from || filter.to)) {
+			const from = filter.from ?? '0000-00-00';
+			const to = filter.to ?? '9999-99-99';
+			rows = rows.filter((r) => r.local_date >= from && r.local_date <= to);
+		}
+		rows.sort((a, b) => b.recorded_at.localeCompare(a.recorded_at));
+		return filter?.limit ? rows.slice(0, filter.limit) : rows;
+	}
+
+	/** Soft delete, so the removal can still be replayed to the server. */
+	async deleteTestResult(id: Uuid): Promise<void> {
+		await db.test_results.update(id, { _deleted: 1, _dirty: 1, updated_at: nowIso() });
+	}
+}
+
+/** The only scores one attempt of this protocol can legally carry. */
+function legalScores(protocol: TestProtocol): number[] {
+	switch (protocol.scoring) {
+		case 'hit_miss':
+			return [0, 1];
+		case 'goal_behind_miss':
+			return [0, 1, 6];
+		case 'timed_hits':
+			return [];
 	}
 }
 

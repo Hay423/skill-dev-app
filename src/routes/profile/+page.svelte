@@ -5,9 +5,11 @@
 		AGE_GROUP_LABELS,
 		EQUIPMENT_ACCESS,
 		EQUIPMENT_ACCESS_LABELS,
+		DEFAULT_RETEST_INTERVAL_WEEKS,
 		EXPERIENCE_LEVELS,
 		EXPERIENCE_LEVEL_LABELS,
 		POSITIONS,
+		RETEST_INTERVAL_WEEKS,
 		POSITION_LABELS,
 		WEEKDAYS,
 		WEEKDAY_LABELS,
@@ -31,6 +33,7 @@
 	let sessionsPerWeek = $state(1);
 	let availableDays = $state<Weekday[]>([]);
 	let equipmentAccess = $state<EquipmentAccess[]>([]);
+	let retestIntervalWeeks = $state<number>(DEFAULT_RETEST_INTERVAL_WEEKS);
 
 	let saving = $state(false);
 	let saved = $state(false);
@@ -51,6 +54,7 @@
 				sessionsPerWeek = p.sessions_per_week;
 				availableDays = [...p.available_days];
 				equipmentAccess = [...p.equipment_access];
+				retestIntervalWeeks = p.retest_interval_weeks;
 			})
 			.finally(() => (loading = false));
 	});
@@ -81,7 +85,8 @@
 				experience,
 				sessions_per_week: sessionsPerWeek,
 				available_days: $state.snapshot(availableDays),
-				equipment_access: $state.snapshot(equipmentAccess)
+				equipment_access: $state.snapshot(equipmentAccess),
+				retest_interval_weeks: retestIntervalWeeks
 			});
 			saved = true;
 			setTimeout(() => (saved = false), 2000);
@@ -227,6 +232,27 @@
 					</button>
 				{/each}
 			</div>
+		</div>
+
+		<div>
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Retest every</span>
+			<div class="mt-1 flex gap-2">
+				{#each RETEST_INTERVAL_WEEKS as weeks (weeks)}
+					<button
+						type="button"
+						onclick={() => (retestIntervalWeeks = weeks)}
+						class="tap-target flex-1 rounded-xl border px-2 text-sm {retestIntervalWeeks === weeks
+							? 'preset-filled-primary-500'
+							: 'preset-outlined-surface-200-800'}"
+					>
+						{weeks}w
+					</button>
+				{/each}
+			</div>
+			<p class="mt-1 text-xs text-surface-500">
+				How often the skill tests come up again. Four weeks is long enough for training to show and
+				short enough for the trend to have points in it.
+			</p>
 		</div>
 
 		<div>

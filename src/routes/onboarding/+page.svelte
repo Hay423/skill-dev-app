@@ -11,16 +11,25 @@
 		EXPERIENCE_LEVEL_LABELS,
 		POSITIONS,
 		POSITION_LABELS,
+		DEFAULT_RETEST_INTERVAL_WEEKS,
+		TEST_FAMILY_LABELS,
 		WEEKDAYS,
 		WEEKDAY_LABELS,
 		type AgeGroup,
 		type EquipmentAccess,
 		type ExperienceLevel,
 		type Position,
+		type TestProtocol,
 		type Weekday
 	} from '$lib/types';
+	import { protocolsByFamily, protocolsForAgeGroup } from '$lib/domain/tests';
 
-	const STEP_TITLES = ['Position', 'Age & experience', 'Availability & equipment'];
+	const STEP_TITLES = [
+		'Position',
+		'Age & experience',
+		'Availability & equipment',
+		'Baseline testing'
+	];
 	const totalSteps = STEP_TITLES.length;
 
 	let step = $state(1);
@@ -35,6 +44,13 @@
 
 	let saving = $state(false);
 	let error = $state<string | null>(null);
+
+	let protocols = $state<TestProtocol[]>([]);
+	$effect(() => {
+		repo.listTestProtocols().then((rows) => (protocols = rows));
+	});
+	/** The tier this player's age group actually sits, for the step 4 preview. */
+	const testPlan = $derived(protocolsForAgeGroup(protocols, age_group));
 
 	function toggleDay(d: Weekday) {
 		available_days = available_days.includes(d)
@@ -219,6 +235,50 @@
 				{/each}
 			</div>
 		</div>
+	</div>
+{:else if step === 4}
+	<!--
+		Not a data step. Everyone goes through a testing phase, and the one thing
+		that makes it work is knowing about it before being asked — a 30-kick test
+		turns up as a chore if the first you hear of it is a card on the home
+		screen. So this sets the expectation and the app prompts from there. It
+		deliberately does not gate anything: nobody can sit these at the moment
+		they finish onboarding.
+	-->
+	<div class="space-y-4">
+		<p class="text-sm text-surface-600-400">
+			Before the app can tell you that you are improving, it needs to know where you are starting.
+			Three tests, each with fixed rules so today's score is comparable with one you sit in six
+			months.
+		</p>
+
+		<!--
+			Read off the seeded protocols rather than written out here, so the
+			player sees the tier their age group actually sits — a U13 is told
+			15, 20 and 25 m, a senior 20, 30 and 40 m — and this copy cannot drift
+			from the protocols it describes.
+		-->
+		<ul class="space-y-2">
+			{#each protocolsByFamily(testPlan) as group (group.family)}
+				<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
+					<p class="font-semibold">{TEST_FAMILY_LABELS[group.family]}</p>
+					{#each group.protocols as protocol (protocol.id)}
+						<p class="mt-1 text-sm text-surface-600-400">{protocol.summary}</p>
+					{/each}
+				</li>
+			{/each}
+		</ul>
+
+		<p class="text-sm text-surface-600-400">
+			You score yourself, so score honestly — a test you flatter is worth nothing to you. Do them
+			whenever you next get to a ground; they will be waiting on your home screen, and nothing else
+			is locked until then.
+		</p>
+
+		<p class="text-xs text-surface-500">
+			After that, a retest every {DEFAULT_RETEST_INTERVAL_WEEKS} weeks by default. You can change that
+			on your profile.
+		</p>
 	</div>
 {/if}
 

@@ -4,7 +4,8 @@ import {
 	type Affirmation,
 	type AffirmationContext,
 	type RepsEvent,
-	type SessionEvent
+	type SessionEvent,
+	type TestEvent
 } from '$lib/domain/affirmations';
 import { currentStreak } from '$lib/domain/stats';
 import { trainingDatesFromLogs } from '$lib/domain/schedule';
@@ -19,18 +20,24 @@ import { localDate } from '$lib/util/time';
  * as `plan.ts`: the actual rule for what to say lives in
  * `domain/affirmations.ts`.
  */
-export async function loadAffirmation(event: RepsEvent | SessionEvent): Promise<Affirmation> {
+export async function loadAffirmation(
+	event: RepsEvent | SessionEvent | TestEvent
+): Promise<Affirmation> {
 	const today = localDate();
-	const [name, repLogs, sessionLogs] = await Promise.all([
+	const [name, repLogs, sessionLogs, testResults] = await Promise.all([
 		repo.getDisplayName(),
 		repo.listRepLogs({}),
-		repo.listSessionLogs({})
+		repo.listSessionLogs({}),
+		repo.listTestResults()
 	]);
 
 	const completedSessions = sessionLogs.filter((log) => log.completed_at !== null);
-	// Both queries already include the record this call is reacting to, so a
-	// total of exactly one means there was nothing before it.
-	const is_first = repLogs.length + completedSessions.length <= 1;
+	// Every query already includes the record this call is reacting to, so a
+	// total of exactly one means there was nothing before it. A sat test counts:
+	// for most players the baseline is the first thing they ever record, and
+	// being told "first one's in the book" afterwards should not depend on
+	// whether they happened to log reps first.
+	const is_first = repLogs.length + completedSessions.length + testResults.length <= 1;
 
 	const ctx: AffirmationContext = {
 		name,

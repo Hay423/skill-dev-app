@@ -1,7 +1,14 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
-import { LOCAL_USER_ID, type Drill, type RepLog, type Session } from '$lib/types';
+import {
+	DEFAULT_RETEST_INTERVAL_WEEKS,
+	LOCAL_USER_ID,
+	PLAYER_PROFILE_SCHEMA_VERSION,
+	type Drill,
+	type RepLog,
+	type Session
+} from '$lib/types';
 
 /**
  * Simulates a real v1 user upgrading to v2: a database is opened with only
@@ -210,15 +217,15 @@ describe('v3 -> v4 Dexie migration', () => {
 		const profile = (await v4.player_profile.get('me')) as Record<string, unknown> | undefined;
 		expect(profile).toBeDefined();
 		expect('injuries' in profile!).toBe(false);
-		// The rest of the row is untouched. The schema version reads 3 rather than
-		// 2 because Dexie runs the whole chain in one open: a v3 database is
-		// carried through v4 (injuries purged) and on through v5 (age bands
-		// renamed) before it is handed back.
+		// The rest of the row is untouched. The schema version reads the current
+		// one rather than 2, because Dexie runs the whole chain in one open: a v3
+		// database is carried through v4 (injuries purged), v5 (age bands renamed)
+		// and on to the latest before it is handed back.
 		expect(profile).toMatchObject({
 			display_name: 'Test player',
 			primary_position: 'ruck',
 			equipment_access: ['oval'],
-			schema_version: 3
+			schema_version: PLAYER_PROFILE_SCHEMA_VERSION
 		});
 
 		v4.close();
@@ -328,7 +335,7 @@ describe('v4 -> v5 Dexie migration', () => {
 		await expect(v5.player_profile.get('me')).resolves.toMatchObject({
 			display_name: 'Test player',
 			equipment_access: ['oval'],
-			schema_version: 3
+			schema_version: PLAYER_PROFILE_SCHEMA_VERSION
 		});
 		v5.close();
 	});
@@ -1021,5 +1028,215 @@ describe('v9 -> v10 Dexie migration', () => {
 		expect(await v10.exercises.get('exercise-1')).toBeDefined();
 
 		v10.close();
+	});
+});
+
+describe('v10 -> v11 Dexie migration', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	/** The v10 schema, before skill tests existed. */
+	class V10Db extends Dexie {
+		constructor() {
+			super('skill-dev');
+			this.version(10).stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty'
+			});
+		}
+	}
+
+	const at = '2026-10-01T02:00:00.000Z';
+	const meta = {
+		created_at: at,
+		updated_at: at,
+		synced_at: null,
+		_dirty: 1 as const,
+		_deleted: 0 as const
+	};
+
+	/** A stored profile with no retest interval, as v10 wrote them. */
+	async function seedV10(db: V10Db): Promise<void> {
+		await db.table('player_profile').add({
+			id: 'me',
+			user_id: LOCAL_USER_ID,
+			display_name: 'Matt',
+			primary_position: 'small_forward',
+			secondary_position: null,
+			age_group: 'senior',
+			date_of_birth: null,
+			experience: 'experienced',
+			sessions_per_week: 4,
+			available_days: ['tue', 'thu'],
+			equipment_access: ['oval', 'goals'],
+			schema_version: 3,
+			...meta
+		});
+		await db.table('rep_logs').add({
+			id: 'rep-1',
+			user_id: LOCAL_USER_ID,
+			session_id: null,
+			drill_id: null,
+			category: 'kicking',
+			attempts: 20,
+			successes: 14,
+			distance_m: null,
+			foot: 'left',
+			recorded_at: at,
+			local_date: '2026-10-01',
+			notes: null,
+			...meta
+		});
+	}
+
+	it('gives an existing profile the default retest interval', async () => {
+		const v10 = new V10Db();
+		await seedV10(v10);
+		v10.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v11 = new SkillDevDb();
+
+		const stored = await v11.player_profile.get('me');
+		expect(stored!.retest_interval_weeks).toBe(DEFAULT_RETEST_INTERVAL_WEEKS);
+		expect(stored!.schema_version).toBe(PLAYER_PROFILE_SCHEMA_VERSION);
+		// Everything else the player chose is untouched.
+		expect(stored!.display_name).toBe('Matt');
+		expect(stored!.equipment_access).toEqual(['oval', 'goals']);
+
+		v11.close();
+	});
+
+	it('brings up the two test tables empty and queryable', async () => {
+		const v10 = new V10Db();
+		await seedV10(v10);
+		v10.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v11 = new SkillDevDb();
+
+		expect(await v11.test_protocols.count()).toBe(0);
+		expect(await v11.test_results.count()).toBe(0);
+
+		v11.close();
+	});
+
+	it('indexes a result by owner, protocol and day', async () => {
+		const v10 = new V10Db();
+		await seedV10(v10);
+		v10.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v11 = new SkillDevDb();
+
+		await v11.test_results.add({
+			id: 'result-1',
+			user_id: LOCAL_USER_ID,
+			protocol_id: 'protocol-1',
+			protocol_slug: 'kicking-accuracy-senior',
+			recorded_at: at,
+			local_date: '2026-10-01',
+			attempts: [{ index: 0, score: 1 }],
+			timed_hits: null,
+			baseline_result_id: null,
+			estimated: 0,
+			converted_from_result_id: null,
+			notes: null,
+			...meta
+		});
+
+		// Each of these is an indexed lookup rather than a table scan, which is
+		// the whole reason the indexes are declared.
+		expect(await v11.test_results.where('user_id').equals(LOCAL_USER_ID).count()).toBe(1);
+		expect(
+			await v11.test_results.where('protocol_slug').equals('kicking-accuracy-senior').count()
+		).toBe(1);
+		expect(await v11.test_results.where('local_date').equals('2026-10-01').count()).toBe(1);
+		expect(await v11.test_results.where('_dirty').equals(1).count()).toBe(1);
+
+		v11.close();
+	});
+
+	it('leaves the rest of the player data alone', async () => {
+		const v10 = new V10Db();
+		await seedV10(v10);
+		v10.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v11 = new SkillDevDb();
+
+		expect((await v11.rep_logs.get('rep-1'))!.successes).toBe(14);
+
+		v11.close();
+	});
+});
+
+describe('the whole upgrade chain', () => {
+	afterEach(async () => {
+		await Dexie.delete('skill-dev');
+	});
+
+	/**
+	 * A v1 database taken all the way to the current version in one open.
+	 *
+	 * This is the case a long-dormant install actually hits, and it is the one
+	 * that catches a migration referring to a table that did not exist at its
+	 * own version — `tx.table()` throws on one, and a throw anywhere in the
+	 * chain leaves the database unopenable rather than merely unmigrated.
+	 */
+	it('takes a v1 user to the current schema without throwing', async () => {
+		class V1Db extends Dexie {
+			constructor() {
+				super('skill-dev');
+				this.version(1).stores({
+					drills: 'id, &slug, category, difficulty',
+					sessions: 'id, local_date, started_at, completed_at, _dirty',
+					rep_logs: 'id, local_date, category, session_id, drill_id, recorded_at, _dirty'
+				});
+			}
+		}
+
+		const v1 = new V1Db();
+		await v1.table('rep_logs').add({
+			id: 'rep-1',
+			user_id: null,
+			session_id: null,
+			drill_id: null,
+			category: 'handball',
+			attempts: 10,
+			successes: 9,
+			distance_m: null,
+			foot: null,
+			recorded_at: '2026-01-01T00:00:00.000Z',
+			local_date: '2026-01-01',
+			notes: null,
+			created_at: '2026-01-01T00:00:00.000Z',
+			updated_at: '2026-01-01T00:00:00.000Z',
+			synced_at: null,
+			_dirty: 1,
+			_deleted: 0
+		});
+		v1.close();
+
+		const { SkillDevDb } = await import('./db');
+		const current = new SkillDevDb();
+
+		const log = await current.rep_logs.get('rep-1');
+		expect(log!.user_id).toBe(LOCAL_USER_ID);
+		expect(await current.test_results.count()).toBe(0);
+
+		current.close();
 	});
 });

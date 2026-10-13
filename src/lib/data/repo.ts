@@ -16,6 +16,9 @@ import type {
 	RepLog,
 	Session,
 	SkillCategory,
+	TestAttemptResult,
+	TestProtocol,
+	TestResult,
 	TrainingProgram,
 	Uuid,
 	Weekday
@@ -112,6 +115,27 @@ export interface Repo {
 		to?: IsoDate;
 		enrolment_id?: Uuid;
 	}): Promise<ProgramSessionLog[]>;
+
+	// --- skill tests (protocols are reference data; results are owned) ---
+	listTestProtocols(): Promise<TestProtocol[]>;
+	getTestProtocolBySlug(slug: string): Promise<TestProtocol | undefined>;
+	/**
+	 * Record a sat test.
+	 *
+	 * Stamps `baseline_result_id` from the protocol's history at write time, so
+	 * the row records which result it was measured against. Rejects an
+	 * incomplete attempt set: a part-finished test is not comparable with a
+	 * finished one, and storing it would quietly poison the trend.
+	 */
+	saveTestResult(input: NewTestResult): Promise<TestResult>;
+	listTestResults(filter?: {
+		protocol_slug?: string;
+		from?: IsoDate;
+		to?: IsoDate;
+		limit?: number;
+	}): Promise<TestResult[]>;
+	/** Soft delete — a mis-scored test the player wants off their trend. */
+	deleteTestResult(id: Uuid): Promise<void>;
 }
 
 export interface NewRepLog {
@@ -162,6 +186,24 @@ export interface SessionProgressInput {
 	completed: boolean;
 }
 
+/**
+ * Input to `saveTestResult`.
+ *
+ * The caller supplies the parts and nothing else: no total, no accuracy, no
+ * baseline. Those are all derived, and a caller allowed to pass its own total
+ * is a caller that can disagree with the protocol.
+ */
+export interface NewTestResult {
+	protocol_id: Uuid;
+	/** One outcome per attempt slot. Empty for a timed test. */
+	attempts: TestAttemptResult[];
+	/** Hits inside the window, for a timed test. */
+	timed_hits?: number | null;
+	notes?: string | null;
+	/** Defaults to now. Injectable so tests are deterministic. */
+	recorded_at?: string;
+}
+
 /** Input to `saveProfile`. A full replace of editable fields, not a patch. */
 export interface ProfileInput {
 	display_name?: string | null;
@@ -173,4 +215,5 @@ export interface ProfileInput {
 	sessions_per_week?: number;
 	available_days?: Weekday[];
 	equipment_access?: EquipmentAccess[];
+	retest_interval_weeks?: number;
 }
