@@ -21,6 +21,28 @@ export function addDays(date: IsoDate, days: number): IsoDate {
 	return localDate(new Date(y, m - 1, d + days));
 }
 
+/**
+ * Whole years from a date of birth to a local calendar day — somebody's age on
+ * that day, as anyone would count it.
+ *
+ * Pure string arithmetic on the two `YYYY-MM-DD` values, with no `Date` in it
+ * at all, which is deliberate: age is a calendar question, and the alternative
+ * of dividing a millisecond difference by 365.25 gets the day either side of a
+ * birthday wrong, and gets 29 February wrong every year. A birthday counts on
+ * the day it lands, so somebody born 2010-03-01 is 16 on 2026-03-01 and 15 on
+ * the last day of February.
+ *
+ * A 29 February birthday therefore ticks over on 1 March in a common year,
+ * which is the usual convention and the one that never reports an age a day
+ * early.
+ */
+export function ageInYears(date_of_birth: IsoDate, on: IsoDate): number {
+	const [by, bm, bd] = date_of_birth.split('-').map(Number);
+	const [y, m, d] = on.split('-').map(Number);
+	const hadBirthday = m > bm || (m === bm && d >= bd);
+	return y - by - (hadBirthday ? 0 : 1);
+}
+
 /** Whole days from `a` to `b`, ignoring time of day. */
 export function daysBetween(a: IsoDate, b: IsoDate): number {
 	const [ay, am, ad] = a.split('-').map(Number);

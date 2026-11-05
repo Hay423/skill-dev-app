@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	addDays,
+	ageInYears,
 	daysBetween,
 	localDate,
 	startOfWeek,
@@ -95,5 +96,33 @@ describe('weekDates', () => {
 			'2026-09-19',
 			'2026-09-20'
 		]);
+	});
+});
+
+describe('ageInYears', () => {
+	it('counts a birthday on the day it lands', () => {
+		expect(ageInYears('2010-07-01', '2026-06-30')).toBe(15);
+		expect(ageInYears('2010-07-01', '2026-07-01')).toBe(16);
+		expect(ageInYears('2010-07-01', '2026-07-02')).toBe(16);
+	});
+
+	it('is right either side of a month boundary', () => {
+		// The case a naive year subtraction gets wrong: the month has rolled over
+		// but the day has not.
+		expect(ageInYears('2010-12-31', '2026-01-01')).toBe(15);
+		expect(ageInYears('2010-01-01', '2026-12-31')).toBe(16);
+	});
+
+	it('ticks a 29 February birthday over on 1 March in a common year', () => {
+		// Never a day early: 2027 has no 29 February, so the birthday falls on the
+		// first day that is unambiguously past it.
+		expect(ageInYears('2008-02-29', '2027-02-28')).toBe(18);
+		expect(ageInYears('2008-02-29', '2027-03-01')).toBe(19);
+		// And on the day itself in a leap year.
+		expect(ageInYears('2008-02-29', '2028-02-29')).toBe(20);
+	});
+
+	it('is 0 on the day somebody is born', () => {
+		expect(ageInYears('2026-08-01', '2026-08-01')).toBe(0);
 	});
 });

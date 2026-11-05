@@ -1119,6 +1119,24 @@ describe('v10 -> v11 Dexie migration', () => {
 		v11.close();
 	});
 
+	it('gives an existing profile the senior opt-in, off', async () => {
+		const v10 = new V10Db();
+		await seedV10(v10);
+		v10.close();
+
+		const { SkillDevDb } = await import('./db');
+		const v12 = new SkillDevDb();
+
+		const stored = await v12.player_profile.get('me');
+		// Backfilled to a real 0, not left undefined: an absent field behaves the
+		// same today and stops being distinguishable from a choice later.
+		expect(stored!.senior_programs_opt_in).toBe(0);
+		expect(stored!.senior_programs_opt_in_at).toBeNull();
+		expect(stored!.schema_version).toBe(PLAYER_PROFILE_SCHEMA_VERSION);
+
+		v12.close();
+	});
+
 	it('brings up the two test tables empty and queryable', async () => {
 		const v10 = new V10Db();
 		await seedV10(v10);

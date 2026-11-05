@@ -24,6 +24,11 @@
 		type TrainingProgram
 	} from '$lib/types';
 	import { describeLoadPolicy } from '$lib/domain/load-policy';
+	import {
+		canOptInToSeniorPrograms,
+		describeSeniorOptIn,
+		seniorProgramsUnlocked
+	} from '$lib/domain/senior-opt-in';
 	import { localDate, startOfWeek } from '$lib/util/time';
 
 	let profile = $state<PlayerProfile | undefined>(undefined);
@@ -118,6 +123,20 @@
 	const actionableExclusions = $derived(
 		result.excluded.filter(({ reason }) => reason.kind !== 'junior_strength')
 	);
+
+	/**
+	 * The senior opt-in, in the two states worth saying something about: offered
+	 * and not taken, so the player knows the setting exists rather than reading
+	 * "for Seniors and above" in the exclusions and assuming that is final; and
+	 * taken, so the percentage work in front of them is explained where it is
+	 * being done rather than only on the profile page that switched it on.
+	 */
+	const seniorOptInOffered = $derived(
+		profile
+			? canOptInToSeniorPrograms(profile, today) && !seniorProgramsUnlocked(profile, today)
+			: false
+	);
+	const seniorOptInNote = $derived(describeSeniorOptIn(profile, today));
 </script>
 
 <header class="mb-4">
@@ -208,6 +227,21 @@
 		{:else}
 			<div class="mb-2"><SupervisionNote /></div>
 			<ProgramList programs={strength} {enrolledIds} />
+		{/if}
+
+		{#if seniorOptInNote}
+			<p class="mt-2 text-xs text-surface-500">{seniorOptInNote}</p>
+		{:else if seniorOptInOffered}
+			<div class="mt-2 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
+				<p class="text-xs text-surface-600-400">
+					<span class="font-semibold text-surface-900-100">There is more than this.</span>
+					Three senior blocks are held back at Under 17 because they load by percentage of your one-rep
+					max and include power cleans and depth jumps. At your age that is your call to make.
+				</p>
+				<a href="/profile" class="mt-2 inline-block text-xs font-medium text-primary-500">
+					Opt in to the senior programs →
+				</a>
+			</div>
 		{/if}
 	</section>
 
