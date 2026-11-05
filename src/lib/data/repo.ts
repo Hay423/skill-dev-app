@@ -212,6 +212,12 @@ export interface ProfileInput {
 	age_group: AgeGroup;
 	date_of_birth?: IsoDate | null;
 	experience: ExperienceLevel;
+	/**
+	 * Omitted leaves whatever is stored alone, so a save from a form that does
+	 * not show the setting cannot silently revoke it. The age that permits it is
+	 * re-checked on read (`domain/senior-opt-in.ts`), so a stale 1 grants nothing.
+	 */
+	senior_programs_opt_in?: 0 | 1;
 	sessions_per_week?: number;
 	available_days?: Weekday[];
 	equipment_access?: EquipmentAccess[];

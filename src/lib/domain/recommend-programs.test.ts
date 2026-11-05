@@ -31,6 +31,8 @@ function profile(overrides: Partial<PlayerProfile> = {}): PlayerProfile {
 		age_group: 'senior',
 		date_of_birth: null,
 		experience: 'developing',
+		senior_programs_opt_in: 0,
+		senior_programs_opt_in_at: null,
 		sessions_per_week: 3,
 		available_days: [],
 		equipment_access: [],
@@ -145,6 +147,98 @@ describe('junior strength gate', () => {
 			ctx({ age_group: 'senior', equipment_access: ['full_gym', 'oval'] })
 		);
 		expect(recommended.some((r) => r.program.discipline === 'strength')).toBe(true);
+	});
+});
+
+describe('the senior opt-in at U17', () => {
+	/** The three the age gate withholds from U17, and the reason each one exists. */
+	const SENIOR_ONLY = [
+		'preseason-max-strength',
+		'in-season-strength-maintenance',
+		'plyo-preseason-power'
+	];
+
+	/** Sixteen on the context date, with the gear the senior blocks ask for. */
+	function u17(overrides: Partial<PlayerProfile> = {}) {
+		return ctx({
+			age_group: 'u17',
+			date_of_birth: '2010-07-01',
+			equipment_access: ['full_gym', 'oval'],
+			...overrides
+		});
+	}
+
+	function slugs(result: ReturnType<typeof recommendPrograms>) {
+		return result.recommended.map((r) => r.program.slug);
+	}
+
+	it('withholds all three from a U17 who has not opted in', () => {
+		const result = recommendPrograms(SEED_PROGRAMS, u17());
+		for (const slug of SENIOR_ONLY) {
+			expect(slugs(result)).not.toContain(slug);
+			const row = result.excluded.find((e) => e.program.slug === slug);
+			expect(row?.reason.kind).toBe('age');
+		}
+	});
+
+	it('opens all three to a U17 who has', () => {
+		const result = recommendPrograms(SEED_PROGRAMS, u17({ senior_programs_opt_in: 1 }));
+		for (const slug of SENIOR_ONLY) {
+			expect(slugs(result)).toContain(slug);
+		}
+	});
+
+	it('keeps the Under 17 blocks alongside them rather than replacing them', () => {
+		// The opt-in adds; it does not move the player up a band. A lift that is
+		// new to them should still have somewhere to be learned.
+		const result = recommendPrograms(SEED_PROGRAMS, u17({ senior_programs_opt_in: 1 }));
+		expect(slugs(result)).toContain('u17-preseason-strength');
+		expect(slugs(result)).toContain('u17-plyo-preseason-power');
+		expect(slugs(result)).toContain('strength-foundations');
+	});
+
+	it('ignores the flag for a fifteen year old in the same band', () => {
+		const result = recommendPrograms(
+			SEED_PROGRAMS,
+			u17({ senior_programs_opt_in: 1, date_of_birth: '2011-07-01' })
+		);
+		for (const slug of SENIOR_ONLY) {
+			expect(slugs(result)).not.toContain(slug);
+		}
+	});
+
+	it('ignores the flag with no date of birth to check it against', () => {
+		const result = recommendPrograms(
+			SEED_PROGRAMS,
+			u17({ senior_programs_opt_in: 1, date_of_birth: null })
+		);
+		for (const slug of SENIOR_ONLY) {
+			expect(slugs(result)).not.toContain(slug);
+		}
+	});
+
+	it('never reopens strength to a band it is withheld from entirely', () => {
+		// The junior rule is checked ahead of the age floor and the opt-in does not
+		// touch it, so a U15 row carrying the flag gets nothing loaded.
+		for (const band of JUNIOR_BANDS) {
+			const result = recommendPrograms(
+				SEED_PROGRAMS,
+				u17({ age_group: band, senior_programs_opt_in: 1 })
+			);
+			expect(result.recommended.some((r) => r.program.discipline === 'strength')).toBe(false);
+		}
+	});
+
+	it('leaves everybody else exactly as they were', () => {
+		// The flag is meaningless outside U17, so setting it must not change one
+		// program for a senior or a masters player.
+		for (const age_group of ['senior', 'masters'] as const) {
+			const before = slugs(recommendPrograms(SEED_PROGRAMS, u17({ age_group })));
+			const after = slugs(
+				recommendPrograms(SEED_PROGRAMS, u17({ age_group, senior_programs_opt_in: 1 }))
+			);
+			expect(after).toEqual(before);
+		}
 	});
 });
 

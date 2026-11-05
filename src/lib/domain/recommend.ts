@@ -28,6 +28,7 @@ import {
 } from './drill-filter';
 import { expandEquipmentAccess } from './equipment';
 import { describeProgramCaution, isMasters, MASTERS_COMFORTABLE_SESSIONS } from './load-policy';
+import { seniorProgramsUnlocked } from './senior-opt-in';
 import { formatList } from './text';
 
 /**
@@ -178,13 +179,30 @@ function ageRank(group: AgeGroup): number {
 }
 
 /**
+ * The age band to gate this player on, which is their own band unless they are
+ * a U17 who has opted in to the senior programs — see `domain/senior-opt-in.ts`
+ * for why that opt-in exists and why it is re-derived here rather than trusted.
+ *
+ * `Math.max` rather than a straight substitution so the opt-in can only ever
+ * raise the floor a player clears. Nothing about it should be able to lower one.
+ */
+function effectiveAgeRank(ctx: RecommendationContext): number {
+	const actual = ageRank(ctx.profile.age_group);
+	if (!seniorProgramsUnlocked(ctx.profile, ctx.today)) return actual;
+	return Math.max(actual, ageRank('senior'));
+}
+
+/**
  * A hard filter, run before any scoring: age gating and equipment access.
  * Scoring only ever ranks what survives this.
  *
  * Keeping exclusion separate from scoring is what lets the UI say "hidden
  * because you do not have gym access" instead of silently returning a short
  * list. Age gating in particular is a data rule the UI cannot override — see
- * "Duty of care" in plans/player-profile.md.
+ * "Duty of care" in plans/player-profile.md. The one carve-out, a U17 opting in
+ * to the senior programs, is a rule in this layer too (`effectiveAgeRank`), not
+ * a component deciding to show something: it reads a stored choice and re-earns
+ * it from the player's real age every call.
  *
  * A profile that skipped a question is not punished for it: an empty
  * `equipment_access` means "unknown", so nothing is excluded on equipment.
@@ -204,7 +222,7 @@ export function isEligible(
 		};
 	}
 
-	if (item.min_age_group && ageRank(ctx.profile.age_group) < ageRank(item.min_age_group)) {
+	if (item.min_age_group && effectiveAgeRank(ctx) < ageRank(item.min_age_group)) {
 		return { eligible: false, reason: { kind: 'age', required: item.min_age_group } };
 	}
 

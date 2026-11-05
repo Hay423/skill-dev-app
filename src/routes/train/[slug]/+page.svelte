@@ -10,6 +10,7 @@
 		sessionsForWeek
 	} from '$lib/domain/program-plan';
 	import { describeExclusion, isEligible, type RecommendationContext } from '$lib/domain/recommend';
+	import { canOptInToSeniorPrograms } from '$lib/domain/senior-opt-in';
 	import { programWeekOn } from '$lib/domain/schedule';
 	import {
 		EXPERIENCE_LEVEL_LABELS,
@@ -65,6 +66,13 @@
 		plan && context ? isEligible(plan.program, context) : ({ eligible: true } as const)
 	);
 
+	/**
+	 * A U17 who could open this block but has not. Only ever true alongside an
+	 * `age` exclusion, so landing here from a link says what to do about it
+	 * rather than just that the door is shut.
+	 */
+	const canOptIn = $derived(profile ? canOptInToSeniorPrograms(profile, today) : false);
+
 	const isEnrolled = $derived(enrolment !== undefined);
 
 	/**
@@ -116,10 +124,21 @@
 				Running and skills work build far more at your age, and they carry none of the risk of
 				lifting without supervision.
 			</p>
+		{:else if eligibility.reason.kind === 'age' && canOptIn}
+			<p class="mt-2 text-sm text-surface-600-400">
+				You are old enough to choose this one, though. It loads by percentage of your one-rep max
+				and includes power cleans or depth jumps, which is why it is not on by default.
+			</p>
 		{/if}
-		<a href="/train" class="mt-3 inline-block text-xs font-medium text-primary-500">
-			See what is available →
-		</a>
+		{#if eligibility.reason.kind === 'age' && canOptIn}
+			<a href="/profile" class="mt-3 inline-block text-xs font-medium text-primary-500">
+				Opt in to the senior programs →
+			</a>
+		{:else}
+			<a href="/train" class="mt-3 inline-block text-xs font-medium text-primary-500">
+				See what is available →
+			</a>
+		{/if}
 	</div>
 {:else}
 	<header class="mb-4">

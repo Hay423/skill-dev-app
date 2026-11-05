@@ -248,6 +248,7 @@ export class LocalRepo implements Repo {
 	async saveProfile(input: ProfileInput): Promise<PlayerProfile> {
 		const existing = await db.player_profile.get(SINGLETON_PROFILE_ID);
 		const at = nowIso();
+		const optIn = input.senior_programs_opt_in ?? existing?.senior_programs_opt_in ?? 0;
 		const profile: PlayerProfile = {
 			id: SINGLETON_PROFILE_ID,
 			user_id: existing?.user_id ?? currentUserId(),
@@ -257,6 +258,14 @@ export class LocalRepo implements Repo {
 			age_group: input.age_group,
 			date_of_birth: input.date_of_birth ?? null,
 			experience: input.experience,
+			senior_programs_opt_in: optIn,
+			/*
+			 * Stamped here rather than passed in, so the acknowledgement and its
+			 * timestamp cannot disagree: set on the save that first turns the
+			 * opt-in on, carried across later saves, and cleared on the one that
+			 * turns it off — a fresh opt-in is then a fresh acknowledgement.
+			 */
+			senior_programs_opt_in_at: optIn === 1 ? (existing?.senior_programs_opt_in_at ?? at) : null,
 			sessions_per_week: input.sessions_per_week ?? 0,
 			available_days: input.available_days ?? [],
 			equipment_access: input.equipment_access ?? [],

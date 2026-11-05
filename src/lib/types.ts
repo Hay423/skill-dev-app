@@ -243,9 +243,10 @@ export const PHYSICAL_QUALITY_LABELS: Record<PhysicalQuality, string> = {
  * migration.
  *
  * These bands gate resistance-training content. U11–U15 are shown no strength
- * programs at all, U17 gets light technique-led load, seniors get full
- * periodised programs. That gating lives in the recommendation layer, not the
- * UI — see plans/player-profile.md "Duty of care".
+ * programs at all, U17 gets light technique-led load — unless they are 16 and
+ * opt in, see `senior_programs_opt_in` below — and seniors get full periodised
+ * programs. That gating lives in the recommendation layer, not the UI — see
+ * plans/player-profile.md "Duty of care".
  */
 export const AGE_GROUPS = ['u11', 'u13', 'u15', 'u17', 'senior', 'masters'] as const;
 export type AgeGroup = (typeof AGE_GROUPS)[number];
@@ -349,6 +350,24 @@ export interface PlayerProfile extends Owned, SyncMeta {
 	/** Optional even where age_group is set — some players would rather not give a DOB. */
 	date_of_birth: IsoDate | null;
 	experience: ExperienceLevel;
+	/**
+	 * Whether a U17 has opted in to the senior programs — the three blocks
+	 * carrying `%1RM`, power cleans and depth jumps that the age gate otherwise
+	 * withholds. `0 | 1` rather than a boolean, like the sync flags, because
+	 * IndexedDB cannot index booleans and this may yet want an index.
+	 *
+	 * Storing the opt-in on the profile is what keeps age gating a data rule
+	 * rather than a UI suggestion: the recommendation layer reads this, and it
+	 * re-checks the age that permits it on every call, so the flag alone never
+	 * unlocks anything. See `domain/senior-opt-in.ts`.
+	 */
+	senior_programs_opt_in: 0 | 1;
+	/**
+	 * When the acknowledgement behind that opt-in was given. Null whenever the
+	 * opt-in is off — turning it off clears it, so a later opt-in is a fresh
+	 * acknowledgement rather than a resurrected one.
+	 */
+	senior_programs_opt_in_at: IsoDateTime | null;
 	sessions_per_week: number;
 	available_days: Weekday[];
 	equipment_access: EquipmentAccess[];
@@ -361,7 +380,7 @@ export interface PlayerProfile extends Owned, SyncMeta {
 	schema_version: number;
 }
 
-export const PLAYER_PROFILE_SCHEMA_VERSION = 4;
+export const PLAYER_PROFILE_SCHEMA_VERSION = 5;
 
 /** The constant singleton id `PlayerProfile` rows are keyed by until auth lands. */
 export const SINGLETON_PROFILE_ID = 'me';

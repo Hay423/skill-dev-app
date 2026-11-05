@@ -514,12 +514,42 @@ None of these are hard to build; all of them are hard to retrofit.
 carries `min_age_group`. The recommendation layer filters on it and cannot be
 overridden by the UI:
 
-| Age group | Resistance training exposure                                                               |
-| --------- | ------------------------------------------------------------------------------------------ |
-| U11–U15   | **No strength programs at all.** Running, skills and games only.                           |
-| U17       | Light external load, technique-led, higher reps. RPE only — no `%1RM`, no maximal singles. |
-| Seniors   | Full programs, `%1RM` and RPE prescription available.                                      |
-| Masters   | Full programs, everything scaled to 85%. Shorter blocks lead; nothing is withheld.         |
+| Age group | Resistance training exposure                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------------------------- |
+| U11–U15   | **No strength programs at all.** Running, skills and games only.                                                      |
+| U17       | Light external load, technique-led, higher reps. RPE only — no `%1RM`, no maximal singles. Opt-in from 16, see below. |
+| Seniors   | Full programs, `%1RM` and RPE prescription available.                                                                 |
+| Masters   | Full programs, everything scaled to 85%. Shorter blocks lead; nothing is withheld.                                    |
+
+**The U17 row has one carve-out, and it is the player's to take.** A sixteen
+year old may opt in to the three senior blocks the row withholds —
+`preseason-max-strength`, `in-season-strength-maintenance` and
+`plyo-preseason-power`, the ones carrying `%1RM`, power cleans and depth jumps.
+It is bounded two ways and both are required: a real age of
+`SENIOR_OPT_IN_MIN_AGE_YEARS` (16) computed from `date_of_birth`, and an
+acknowledgement naming what changes.
+
+The band is the blunt part of the rule, which is what the carve-out answers.
+U17 holds both a fifteen year old a season into football and a sixteen year old
+who has been lifting two years and plays seniors next year; widening the band
+would hand percentage work to the first, and leaving it alone keeps the second
+on a block chosen for their birthday. Sixteen is the floor because that player
+is within twelve months of being given these programs anyway. Below it the
+block is not withheld on a technicality — it is the wrong work.
+
+It stays a data rule rather than becoming a UI suggestion, in two ways that
+matter. The choice is stored on the profile (`senior_programs_opt_in`), and the
+recommendation layer reads it — no component decides to show anything. And
+`seniorProgramsUnlocked` re-derives the entitlement from the player's real age
+on **every call** instead of trusting the stored flag, so setting the age group
+back to U15 or clearing the date of birth closes the blocks immediately, with no
+migration and no stale grant. The flag records a choice; it never confers
+access. See `src/lib/domain/senior-opt-in.ts`.
+
+The age floor reads `date_of_birth`, which is optional and stays optional: a
+player who would rather not give one simply does not get offered the opt-in.
+Inferring "probably sixteen" from the U17 band would defeat the only part of
+this that cannot be talked around. Nothing else in the app is gated on a DOB.
 
 **Masters is a reduction, not a restriction, and the difference is the point.**
 Resistance training is the main defence against the muscle loss and tendon

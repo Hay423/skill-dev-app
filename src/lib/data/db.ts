@@ -463,6 +463,46 @@ export class SkillDevDb extends Dexie {
 						profile.schema_version = PLAYER_PROFILE_SCHEMA_VERSION;
 					});
 			});
+
+		// v12: the profile gains `senior_programs_opt_in` and
+		// `senior_programs_opt_in_at` — a U17's choice to train the three senior
+		// blocks the age gate otherwise withholds (see `domain/senior-opt-in.ts`).
+		//
+		// Backfilled to 0 rather than left undefined. `undefined` would read as
+		// falsy and behave correctly today, but it is not a choice anybody made,
+		// and it would be indistinguishable from a row written before the field
+		// existed the first time something wants to count opt-ins or index this.
+		// No table definitions change, so the `stores` call repeats v11 verbatim:
+		// Dexie needs each version to state the whole schema, and a version that
+		// named only `player_profile` would drop every other table.
+		this.version(12)
+			.stores({
+				drills: 'id, &slug, category, difficulty, active',
+				sessions: 'id, user_id, local_date, started_at, completed_at, _dirty',
+				rep_logs: 'id, user_id, local_date, category, session_id, drill_id, recorded_at, _dirty',
+				player_profile: 'id, user_id, _dirty',
+				positions: '&position, group',
+				exercises: 'id, &slug, movement_pattern',
+				programs: 'id, &slug, discipline, phase',
+				program_weeks: '[program_id+week_number], program_id',
+				program_sessions: 'id, program_id, week_number',
+				program_items: 'id, session_id',
+				program_enrolments: 'id, user_id, program_id, started_at, completed_at, _dirty',
+				program_session_logs:
+					'id, user_id, enrolment_id, program_session_id, local_date, completed_at, _dirty',
+				test_protocols: 'id, &slug, family, category',
+				test_results: 'id, user_id, protocol_id, protocol_slug, local_date, recorded_at, _dirty'
+			})
+			.upgrade(async (tx) => {
+				await tx
+					.table('player_profile')
+					.toCollection()
+					.modify((profile) => {
+						profile.senior_programs_opt_in = 0;
+						profile.senior_programs_opt_in_at = null;
+						profile.schema_version = PLAYER_PROFILE_SCHEMA_VERSION;
+					});
+			});
 	}
 }
 

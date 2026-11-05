@@ -37,6 +37,8 @@ function profile(over: Partial<PlayerProfile> = {}): PlayerProfile {
 		age_group: 'senior',
 		date_of_birth: null,
 		experience: 'developing',
+		senior_programs_opt_in: 0,
+		senior_programs_opt_in_at: null,
 		sessions_per_week: 3,
 		available_days: ['mon', 'wed', 'fri'],
 		equipment_access: [],
