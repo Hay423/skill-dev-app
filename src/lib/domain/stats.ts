@@ -37,11 +37,20 @@ export function totalsByCategory(logs: RepLog[]): Array<Totals & { category: Ski
  * Today not being logged yet does not break the streak — a streak ending
  * yesterday still counts, so the number does not read as 0 all morning. Two or
  * more clear days since the last log ends it.
+ *
+ * `alsoTrainedOn` carries the days a program session was ticked off. A gym or
+ * running session the app itself prescribed has to count: a player who does
+ * exactly what they were told and watches the streak break learns to ignore the
+ * calendar. Rep logs remain the primary signal — this only ever adds days.
  */
-export function currentStreak(logs: RepLog[], today: IsoDate = localDate()): number {
-	if (logs.length === 0) return 0;
+export function currentStreak(
+	logs: RepLog[],
+	today: IsoDate = localDate(),
+	alsoTrainedOn: IsoDate[] = []
+): number {
+	if (logs.length === 0 && alsoTrainedOn.length === 0) return 0;
 
-	const days = new Set(logs.map((l) => l.local_date));
+	const days = new Set([...logs.map((l) => l.local_date), ...alsoTrainedOn]);
 	const mostRecent = [...days].sort().at(-1)!;
 
 	const gap = daysBetween(mostRecent, today);

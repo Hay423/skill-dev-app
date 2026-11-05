@@ -2,6 +2,7 @@
 	import { repo } from '$lib/data';
 	import { parseDrillsCsv, parseDrillsJson, type DrillImportError } from '$lib/domain/drill-import';
 	import type { DrillInput } from '$lib/data/repo';
+	import { drillTitle } from '$lib/domain/drills';
 	import { SKILL_CATEGORY_LABELS, type Drill } from '$lib/types';
 
 	let drills = $state<Drill[]>([]);
@@ -84,12 +85,10 @@
 </a>
 
 <section class="mb-6 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
-	<h2 class="text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
-		Upload drills
-	</h2>
+	<h2 class="text-sm font-semibold tracking-wide text-surface-600-400 uppercase">Upload drills</h2>
 	<p class="mt-1 text-xs text-surface-500">
-		CSV or JSON file. A row whose <code>slug</code> matches an existing drill updates it; otherwise
-		a new drill is created.
+		CSV or JSON file. A row whose <code>slug</code> matches an existing drill updates it; otherwise a
+		new drill is created.
 	</p>
 	<input
 		bind:this={fileInput}
@@ -148,7 +147,7 @@
 				<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
 					<div class="flex items-start justify-between gap-3">
 						<div class="min-w-0">
-							<p class="truncate font-semibold">{drill.name}</p>
+							<p class="truncate font-semibold">{drillTitle(drill)}</p>
 							<p class="text-xs text-surface-500">
 								{SKILL_CATEGORY_LABELS[drill.category]}
 								{drill.source === 'custom' ? ' · Your drill' : ''}
@@ -190,7 +189,7 @@
 					<li class="rounded-xl border border-surface-200-800 bg-surface-100-900 p-3 opacity-70">
 						<div class="flex items-start justify-between gap-3">
 							<div class="min-w-0">
-								<p class="truncate font-semibold">{drill.name}</p>
+								<p class="truncate font-semibold">{drillTitle(drill)}</p>
 								<p class="text-xs text-surface-500">{SKILL_CATEGORY_LABELS[drill.category]}</p>
 							</div>
 							<div class="flex shrink-0 gap-2">

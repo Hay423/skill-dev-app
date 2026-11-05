@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RepLog, SkillCategory } from '$lib/types';
+import { LOCAL_USER_ID, type RepLog, type SkillCategory } from '$lib/types';
 import { accuracyTrend, currentStreak, dailySeries, totals, totalsByCategory } from './stats';
 
 let seq = 0;
@@ -13,7 +13,7 @@ function log(
 	seq += 1;
 	return {
 		id: `log-${seq}`,
-		user_id: null,
+		user_id: LOCAL_USER_ID,
 		session_id: null,
 		drill_id: null,
 		category,
@@ -107,5 +107,27 @@ describe('accuracyTrend', () => {
 
 	it('is null when one half has no attempts', () => {
 		expect(accuracyTrend([log('2026-08-15', 10, 6)], 28, '2026-08-17')).toBeNull();
+	});
+});
+
+describe('currentStreak with program sessions', () => {
+	it('counts a ticked-off program session as a training day', () => {
+		// The player logged reps on Monday and did a prescribed gym session on
+		// Tuesday. That is two consecutive days of training, not one.
+		const logs = [log('2026-09-14', 5, 3)];
+		expect(currentStreak(logs, '2026-09-15')).toBe(1);
+		expect(currentStreak(logs, '2026-09-15', ['2026-09-15'])).toBe(2);
+	});
+
+	it('holds a streak together across a gap that program sessions fill', () => {
+		const logs = [log('2026-09-14', 5, 3), log('2026-09-16', 5, 3)];
+		// Without the session day, Tuesday breaks the run.
+		expect(currentStreak(logs, '2026-09-16')).toBe(1);
+		expect(currentStreak(logs, '2026-09-16', ['2026-09-15'])).toBe(3);
+	});
+
+	it('works with no rep logs at all', () => {
+		expect(currentStreak([], '2026-09-15', ['2026-09-15', '2026-09-14'])).toBe(2);
+		expect(currentStreak([], '2026-09-15', [])).toBe(0);
 	});
 });

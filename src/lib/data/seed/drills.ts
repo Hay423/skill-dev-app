@@ -8,6 +8,18 @@ import type { Drill } from '$lib/types';
  * `active`/`source` are runtime state owned by the admin library (see
  * `seedDrills` in `../index.ts`), not content, so they are deliberately omitted
  * here rather than hard-coded on every entry.
+ *
+ * `equipment` is display copy — what to bring. `equipment_required` is the
+ * structured version the eligibility rules and the player's filter read, and on
+ * a drill it almost always names **space rather than gear**: the smallest place
+ * the drill actually works in. `domain/equipment.ts` expands an oval to include
+ * a park and a park a backyard, so the value here is a floor, the same way
+ * `min_players` is. A football is not listed because every drill needs one, and
+ * a requirement everything shares filters nothing.
+ *
+ * Requirements are AND-ed, so only genuinely mandatory ones belong here. A
+ * drill that works against a wall *or* with a partner declares neither — it
+ * declares the space it needs and leaves the rest to the headcount filter.
  */
 export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 	{
@@ -24,6 +36,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Same run-up every rep, even at short range'
 		],
 		equipment: ['Football', 'Wall or fence'],
+		equipment_required: ['wall'],
 		min_players: 1,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -43,6 +56,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Reset to the shortest rung whenever two in a row miss'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['park'],
 		min_players: 1,
 		duration_minutes: 15,
 		difficulty: 2,
@@ -62,6 +76,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Flat, penetrating trajectory so the target runs onto it'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['park'],
 		min_players: 2,
 		duration_minutes: 15,
 		difficulty: 2,
@@ -82,6 +97,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Score only the shots that go through — near misses are misses'
 		],
 		equipment: ['Football', 'Goals', 'Cones'],
+		equipment_required: ['goals'],
 		min_players: 1,
 		duration_minutes: 20,
 		difficulty: 2,
@@ -101,6 +117,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Shorten the run — balance beats power from the pocket'
 		],
 		equipment: ['Football', 'Goals'],
+		equipment_required: ['goals'],
 		min_players: 1,
 		duration_minutes: 15,
 		difficulty: 3,
@@ -120,6 +137,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Step into the handball with the opposite foot'
 		],
 		equipment: ['Football'],
+		equipment_required: ['backyard'],
 		min_players: 1,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -139,6 +157,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Release to the runner in front, on their outside shoulder'
 		],
 		equipment: ['Football', 'Tackle bag'],
+		equipment_required: ['park'],
 		min_players: 3,
 		duration_minutes: 15,
 		difficulty: 3,
@@ -158,6 +177,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Absorb into the chest and secure before turning'
 		],
 		equipment: ['Football'],
+		equipment_required: ['park'],
 		min_players: 2,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -177,6 +197,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Strong hands above the head, eyes on the ball through contact'
 		],
 		equipment: ['Football'],
+		equipment_required: ['park'],
 		min_players: 3,
 		duration_minutes: 15,
 		difficulty: 3,
@@ -196,6 +217,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Do not break stride — gather and go'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['park'],
 		min_players: 2,
 		duration_minutes: 10,
 		difficulty: 1,
@@ -215,6 +237,7 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Drive through the hips, take them to ground safely'
 		],
 		equipment: ['Tackle bag'],
+		equipment_required: ['backyard'],
 		min_players: 2,
 		duration_minutes: 15,
 		difficulty: 2,
@@ -234,10 +257,166 @@ export const SEED_DRILLS: Omit<Drill, 'active' | 'source'>[] = [
 			'Accelerate out of the change of direction, not into it'
 		],
 		equipment: ['Football', 'Cones'],
+		equipment_required: ['backyard'],
 		min_players: 2,
 		duration_minutes: 10,
 		difficulty: 2,
 		tracks_reps: false,
 		target_reps: null
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a13',
+		slug: 'goal-post-handballs',
+		name: 'Goal post handballs',
+		category: 'handball',
+		summary: 'Quick handballs into a goal post, collecting the rebound.',
+		setup: 'Stand a metre from the goal post and handball into it, aiming to collect the rebound.',
+		coaching_points: [
+			'Knees slightly bent, heels off the ground',
+			"Punch through the ball, don't throw it",
+			'Watch the ball from your hand to its rebound off the post'
+		],
+		equipment: ['Football', 'Goals'],
+		equipment_required: ['goals'],
+		min_players: 1,
+		duration_minutes: 8,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 30
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a14',
+		slug: 'stoppage-simulation',
+		name: 'Stoppage sim',
+		category: 'ground_ball',
+		summary: 'Clean gathers at pace from a bouncing ball.',
+		setup: 'Throw or kick the ball into space and run to gather it cleanly at pace.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Bend your knees and get low to the ground',
+			'Use your body to shield the ball from opponents'
+		],
+		equipment: ['Football'],
+		equipment_required: ['park'],
+		min_players: 1,
+		duration_minutes: 5,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 30
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a15',
+		slug: 'cricket-net-kicks',
+		name: 'Cricket net kicks',
+		category: 'kicking',
+		summary: 'Kicking the ball from one end of a cricket net to the other.',
+		setup:
+			"Set up at the bowler's end of a cricket net and kick into the middle of the back of the net, without the ball touching the sides, floor or roof.",
+		coaching_points: [
+			'Keep your head over the ball, leaning forward slightly',
+			'Follow through with your kicking leg',
+			'Focus on accuracy rather than power'
+		],
+		equipment: ['Football', 'Cricket net'],
+		equipment_required: ['oval'],
+		min_players: 1,
+		duration_minutes: 10,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 20
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a16',
+		slug: 'goals-on-the-run',
+		name: 'Goals on the run',
+		category: 'goalkicking',
+		summary: 'Kicking goals on the run from different angles and distances.',
+		setup:
+			'Set up within or just outside the 50 m arc, throw or kick the ball in front of yourself, then gather and kick on the run.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Collect the ball cleanly and quickly',
+			'Straighten the hips and shoulders to the goals'
+		],
+		equipment: ['Football', 'Goals'],
+		equipment_required: ['goals'],
+		position_tags: [
+			'inside_midfielder',
+			'outside_midfielder',
+			'key_forward',
+			'medium_forward',
+			'small_forward'
+		],
+		min_players: 1,
+		duration_minutes: 12,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 40
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a17',
+		slug: 'defensive-exits',
+		name: 'Defensive exit',
+		category: 'kicking',
+		summary: 'Kicking the ball out of deep 50 to a teammate in space.',
+		setup:
+			'Start outside the 50 m arc, have a teammate kick the ball over your head deep into the arc, then gather and kick it back to them in space.',
+		coaching_points: [
+			'Stay off your heels and be ready to collect the ball',
+			'Vary your kicking distances and angles',
+			'Hit your teammate on the chest'
+		],
+		equipment: ['Football'],
+		equipment_required: ['oval'],
+		position_tags: ['key_defender', 'general_defender'],
+		min_players: 2,
+		duration_minutes: 12,
+		difficulty: 2,
+		tracks_reps: true,
+		target_reps: 12
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a18',
+		slug: 'one-on-one-defending',
+		name: '1-on-1s',
+		category: 'marking',
+		summary: 'Defending one on one in a contest.',
+		setup:
+			'Set up against a mate and have a third player kick the ball high at the two of you. Contest the drop zone and either mark it or bring it to ground.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Give your opponent no room to jump at the ball',
+			'Try to push your opponent off balance, or out of the contest'
+		],
+		equipment: ['Football'],
+		equipment_required: ['park'],
+		position_tags: ['key_defender', 'general_defender', 'ruck', 'key_forward', 'medium_forward'],
+		min_players: 3,
+		duration_minutes: 15,
+		difficulty: 3,
+		tracks_reps: true,
+		target_reps: 5
+	},
+	{
+		id: '6b1f0c9e-4a2d-4f31-9a7b-0c1d2e3f4a19',
+		slug: 'ruck-taps',
+		name: 'Ruck taps',
+		category: 'ruckwork',
+		summary: 'Ruck taps to a teammate out of a contest.',
+		setup:
+			'Set up against a mate and have a teammate throw the ball up between you. Jump and tap it to your teammate.',
+		coaching_points: [
+			'Keep your eyes on the ball',
+			'Jump up and hit the ball at the highest point you can reach',
+			'Listen to your teammate and tap to where they call'
+		],
+		equipment: ['Football'],
+		equipment_required: ['park'],
+		position_tags: ['key_defender', 'ruck', 'key_forward'],
+		min_players: 3,
+		duration_minutes: 8,
+		difficulty: 1,
+		tracks_reps: true,
+		target_reps: 16
 	}
 ];

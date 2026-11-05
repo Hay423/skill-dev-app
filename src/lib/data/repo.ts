@@ -5,7 +5,6 @@ import type {
 	EquipmentAccess,
 	Exercise,
 	ExperienceLevel,
-	InjuryFlag,
 	IsoDate,
 	MovementPattern,
 	PlayerProfile,
@@ -13,9 +12,13 @@ import type {
 	PositionProfile,
 	ProgramEnrolment,
 	ProgramPlan,
+	ProgramSessionLog,
 	RepLog,
 	Session,
 	SkillCategory,
+	TestAttemptResult,
+	TestProtocol,
+	TestResult,
 	TrainingProgram,
 	Uuid,
 	Weekday
@@ -32,10 +35,7 @@ import type {
 export interface Repo {
 	// --- drills (reference data, editable via the admin library) ---
 	/** `includeHidden` is for the admin library; every other caller wants the default (active only). */
-	listDrills(filter?: {
-		category?: SkillCategory;
-		includeHidden?: boolean;
-	}): Promise<Drill[]>;
+	listDrills(filter?: { category?: SkillCategory; includeHidden?: boolean }): Promise<Drill[]>;
 	getDrill(id: Uuid): Promise<Drill | undefined>;
 	getDrillBySlug(slug: string): Promise<Drill | undefined>;
 	createDrill(input: DrillInput): Promise<Drill>;
@@ -74,16 +74,68 @@ export interface Repo {
 		movement_pattern?: MovementPattern;
 		equipment_access?: EquipmentAccess[];
 	}): Promise<Exercise[]>;
+	/**
+	 * The name a player has set, for the affirmation and any other
+	 * personalisation — a thin wrapper over `getProfile` so a caller that only
+	 * needs the name is not tempted to reach past the repo for it.
+	 */
+	getDisplayName(): Promise<string | null>;
 	listPrograms(filter?: {
 		discipline?: TrainingProgram['discipline'];
 		phase?: TrainingProgram['phase'];
 	}): Promise<TrainingProgram[]>;
 	getProgramPlan(program_id: Uuid): Promise<ProgramPlan | undefined>;
+	/** Same as `getProgramPlan`, keyed by the slug the routes use. One call, not two. */
+	getProgramPlanBySlug(slug: string): Promise<ProgramPlan | undefined>;
 
 	// --- program enrolment ---
-	activeEnrolment(): Promise<ProgramEnrolment | undefined>;
+	/**
+	 * Every program currently running — at most one per discipline, so a player
+	 * can hold a strength block and a running block at the same time.
+	 */
+	activeEnrolments(): Promise<ProgramEnrolment[]>;
+	/** The active enrolment for one discipline, if there is one. */
+	activeEnrolment(
+		discipline?: TrainingProgram['discipline']
+	): Promise<ProgramEnrolment | undefined>;
+	/** Starting a program ends the one already running *in the same discipline*, and only that one. */
 	enrol(program_id: Uuid): Promise<ProgramEnrolment>;
-	advanceWeek(enrolment_id: Uuid): Promise<ProgramEnrolment | undefined>;
+	/** Leave a program partway through. Soft delete, so it can still be replayed to the server. */
+	abandonEnrolment(enrolment_id: Uuid): Promise<void>;
+
+	// --- session ticking ---
+	/**
+	 * Upsert one session's progress. The caller passes the whole tick set rather
+	 * than a delta, so two taps in quick succession cannot interleave into a
+	 * half-applied state.
+	 */
+	logSessionProgress(input: SessionProgressInput): Promise<ProgramSessionLog>;
+	listSessionLogs(filter?: {
+		from?: IsoDate;
+		to?: IsoDate;
+		enrolment_id?: Uuid;
+	}): Promise<ProgramSessionLog[]>;
+
+	// --- skill tests (protocols are reference data; results are owned) ---
+	listTestProtocols(): Promise<TestProtocol[]>;
+	getTestProtocolBySlug(slug: string): Promise<TestProtocol | undefined>;
+	/**
+	 * Record a sat test.
+	 *
+	 * Stamps `baseline_result_id` from the protocol's history at write time, so
+	 * the row records which result it was measured against. Rejects an
+	 * incomplete attempt set: a part-finished test is not comparable with a
+	 * finished one, and storing it would quietly poison the trend.
+	 */
+	saveTestResult(input: NewTestResult): Promise<TestResult>;
+	listTestResults(filter?: {
+		protocol_slug?: string;
+		from?: IsoDate;
+		to?: IsoDate;
+		limit?: number;
+	}): Promise<TestResult[]>;
+	/** Soft delete — a mis-scored test the player wants off their trend. */
+	deleteTestResult(id: Uuid): Promise<void>;
 }
 
 export interface NewRepLog {
@@ -124,6 +176,34 @@ export interface DrillInput {
 	equipment_required?: EquipmentAccess[];
 }
 
+/** Input to `logSessionProgress`. */
+export interface SessionProgressInput {
+	enrolment_id: Uuid;
+	program_session_id: Uuid;
+	/** The day the session was scheduled for, not necessarily today — late ticks are allowed. */
+	local_date: IsoDate;
+	completed_item_ids: Uuid[];
+	completed: boolean;
+}
+
+/**
+ * Input to `saveTestResult`.
+ *
+ * The caller supplies the parts and nothing else: no total, no accuracy, no
+ * baseline. Those are all derived, and a caller allowed to pass its own total
+ * is a caller that can disagree with the protocol.
+ */
+export interface NewTestResult {
+	protocol_id: Uuid;
+	/** One outcome per attempt slot. Empty for a timed test. */
+	attempts: TestAttemptResult[];
+	/** Hits inside the window, for a timed test. */
+	timed_hits?: number | null;
+	notes?: string | null;
+	/** Defaults to now. Injectable so tests are deterministic. */
+	recorded_at?: string;
+}
+
 /** Input to `saveProfile`. A full replace of editable fields, not a patch. */
 export interface ProfileInput {
 	display_name?: string | null;
@@ -135,5 +215,5 @@ export interface ProfileInput {
 	sessions_per_week?: number;
 	available_days?: Weekday[];
 	equipment_access?: EquipmentAccess[];
-	injuries?: InjuryFlag[];
+	retest_interval_weeks?: number;
 }

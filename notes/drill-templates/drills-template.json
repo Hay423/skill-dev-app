@@ -1,0 +1,58 @@
+[
+	{
+		"slug": "handball-under-pressure",
+		"name": "Handball under pressure",
+		"category": "handball",
+		"summary": "Quick handball release with a defender closing in.",
+		"setup": "Partner starts 5 m away and closes as soon as you receive the ball.",
+		"coaching_points": [
+			"Eyes up before you receive",
+			"Punch through the ball, don't throw it",
+			"Step across the tackler's line"
+		],
+		"equipment": ["Football", "Cones"],
+		"min_players": 2,
+		"duration_minutes": 10,
+		"difficulty": 2,
+		"tracks_reps": true,
+		"target_reps": 20
+	},
+	{
+		"slug": "set-shot-under-fatigue",
+		"name": "Set shot under fatigue",
+		"category": "goalkicking",
+		"summary": "Set shots straight after a sprint, to simulate match fatigue.",
+		"setup": "Sprint 20 m, receive a pass, play on, then set shot from 35 m.",
+		"coaching_points": [
+			"Reset your breathing before starting the routine",
+			"Same pre-shot routine regardless of fatigue",
+			"Track makes out of 10"
+		],
+		"equipment": ["Football", "Cones", "Goals"],
+		"min_players": 1,
+		"duration_minutes": 15,
+		"difficulty": 3,
+		"tracks_reps": true,
+		"target_reps": 10,
+		"position_tags": ["key_forward", "medium_forward", "small_forward"],
+		"equipment_required": ["goals", "oval"]
+	},
+	{
+		"slug": "contested-marking-technique",
+		"name": "Contested marking technique",
+		"category": "marking",
+		"summary": "Technique work on strong hands and body positioning at the fall of the ball, no live contest.",
+		"setup": "Partner throws a high ball; you work on timing the jump and shielding with the body.",
+		"coaching_points": [
+			"Take off from one step, not two",
+			"Punch through with the hip extended",
+			"Keep eyes on the ball through contact"
+		],
+		"equipment": ["Football"],
+		"min_players": 2,
+		"duration_minutes": 10,
+		"difficulty": 1,
+		"tracks_reps": false,
+		"target_reps": null
+	}
+]

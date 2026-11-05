@@ -1,27 +1,49 @@
 <script lang="ts">
 	import StatCard from '$lib/components/StatCard.svelte';
+	import BaselineCard from '$lib/components/BaselineCard.svelte';
+	import RecommendedDrills from '$lib/components/RecommendedDrills.svelte';
+	import TodayPlan from '$lib/components/TodayPlan.svelte';
 	import { repo } from '$lib/data';
 	import { currentStreak, formatAccuracy, totals, totalsByCategory } from '$lib/domain/stats';
-	import { SKILL_CATEGORY_LABELS, type RepLog } from '$lib/types';
+	import { trainingDatesFromLogs, type PlannedDay } from '$lib/domain/schedule';
+	import { loadWeekPlan } from '$lib/plan';
+	import type { LoadedTestPhase } from '$lib/skill-tests';
+	import { SKILL_CATEGORY_LABELS, type ProgramSessionLog, type RepLog } from '$lib/types';
 	import { addDays, localDate } from '$lib/util/time';
 
 	const today = localDate();
 
 	let allLogs = $state<RepLog[]>([]);
+	let sessionLogs = $state<ProgramSessionLog[]>([]);
+	let planDays = $state<PlannedDay[]>([]);
+	let tests = $state<LoadedTestPhase | null>(null);
 	let loading = $state(true);
 
-	$effect(() => {
+	async function load() {
 		// A 90-day window covers the streak and every summary on this page
 		// without pulling the entire history into memory.
-		repo
-			.listRepLogs({ from: addDays(today, -90) })
-			.then((logs) => (allLogs = logs))
-			.finally(() => (loading = false));
+		const [logs, ticks, plan] = await Promise.all([
+			repo.listRepLogs({ from: addDays(today, -90) }),
+			repo.listSessionLogs({ from: addDays(today, -90) }),
+			loadWeekPlan()
+		]);
+		allLogs = logs;
+		sessionLogs = ticks;
+		planDays = plan.days;
+		// Taken off the plan rather than loaded again: the plan already read the
+		// protocols and results to place a due retest on a day, and two separate
+		// reads could disagree about whether a round is still outstanding.
+		tests = plan.tests;
+	}
+
+	$effect(() => {
+		load().finally(() => (loading = false));
 	});
 
 	const todayLogs = $derived(allLogs.filter((l) => l.local_date === today));
 	const todayTotals = $derived(totals(todayLogs));
-	const streak = $derived(currentStreak(allLogs, today));
+	// A ticked-off program session counts as a training day, same as logged reps.
+	const streak = $derived(currentStreak(allLogs, today, trainingDatesFromLogs(sessionLogs)));
 	const byCategory = $derived(totalsByCategory(todayLogs));
 </script>
 
@@ -56,6 +78,19 @@
 		</a>
 	</div>
 
+	<!--
+		Above the plan, deliberately. A round that is due is the one piece of work
+		the plan cannot replace: until it is sat, every other number on this page
+		is training with nothing to measure it against.
+	-->
+	{#if tests?.phase && tests.cycle}
+		<BaselineCard phase={tests.phase} cycle={tests.cycle} {today} />
+	{/if}
+
+	<TodayPlan days={planDays} {today} onchange={load} />
+
+	<RecommendedDrills />
+
 	<section class="mt-6">
 		<h2 class="mb-2 text-sm font-semibold tracking-wide text-surface-600-400 uppercase">
 			Today by skill
@@ -69,7 +104,9 @@
 		{:else}
 			<ul class="space-y-2">
 				{#each byCategory as row (row.category)}
-					<li class="flex items-center gap-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3">
+					<li
+						class="flex items-center gap-3 rounded-xl border border-surface-200-800 bg-surface-100-900 p-3"
+					>
 						<div class="min-w-0 flex-1">
 							<p class="font-medium">{SKILL_CATEGORY_LABELS[row.category]}</p>
 							<p class="text-xs text-surface-600-400">
