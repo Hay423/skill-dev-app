@@ -23,6 +23,13 @@
 		type Weekday
 	} from '$lib/types';
 	import { protocolsByFamily, protocolsForAgeGroup } from '$lib/domain/tests';
+	import {
+		checkDateOfBirth,
+		dateOfBirthAccepted,
+		dateOfBirthUnlocksPrograms,
+		describeDateOfBirth
+	} from '$lib/domain/date-of-birth';
+	import { localDate } from '$lib/util/time';
 
 	const STEP_TITLES = [
 		'Position',
@@ -37,6 +44,7 @@
 	let primary_position = $state<Position>('utility');
 	let secondary_position = $state<Position | null>(null);
 	let age_group = $state<AgeGroup>('senior');
+	let date_of_birth = $state('');
 	let experience = $state<ExperienceLevel>('developing');
 	let sessions_per_week = $state(3);
 	let available_days = $state<Weekday[]>([]);
@@ -51,6 +59,17 @@
 	});
 	/** The tier this player's age group actually sits, for the step 4 preview. */
 	const testPlan = $derived(protocolsForAgeGroup(protocols, age_group));
+
+	/*
+		Read once, at setup, rather than per keystroke: onboarding is a single
+		sitting, and a date of birth that changed meaning because the clock rolled
+		over mid-form would be stranger than one judged against the day it started.
+	*/
+	const today = localDate();
+	const dobCheck = $derived(checkDateOfBirth(date_of_birth, today));
+	const dobMessage = $derived(describeDateOfBirth(dobCheck, age_group));
+	/* Only the step holding the field can be blocked by it. */
+	const canContinue = $derived(step !== 2 || dateOfBirthAccepted(dobCheck));
 
 	function toggleDay(d: Weekday) {
 		available_days = available_days.includes(d)
@@ -69,6 +88,7 @@
 	}
 
 	function next() {
+		if (!canContinue) return;
 		if (step < totalSteps) step += 1;
 	}
 
@@ -84,6 +104,8 @@
 				primary_position,
 				secondary_position,
 				age_group,
+				// Empty means declined, which is a null column rather than an empty string.
+				date_of_birth: date_of_birth || null,
 				experience,
 				sessions_per_week,
 				available_days: $state.snapshot(available_days),
@@ -161,6 +183,49 @@
 				{/each}
 			</div>
 		</div>
+
+		<!--
+			Asked here rather than left to the profile page. It is optional — see
+			`domain/senior-opt-in.ts` — but a player who is never asked cannot decline
+			it either, and the one feature it controls then looks absent rather than
+			locked. The age it implies is echoed back as it is typed, because a
+			mistyped year fails by quietly withholding that feature.
+		-->
+		<label class="block">
+			<span class="text-xs tracking-wide text-surface-600-400 uppercase">
+				Date of birth <span class="normal-case">(optional)</span>
+			</span>
+			<input
+				type="date"
+				bind:value={date_of_birth}
+				max={today}
+				class="tap-target mt-1 w-full rounded-xl border px-3 py-2 bg-surface-100-900 {dateOfBirthAccepted(
+					dobCheck
+				)
+					? 'border-surface-300-700'
+					: 'border-error-500'}"
+			/>
+
+			{#if dobMessage}
+				<span
+					class="mt-1 block text-xs {dateOfBirthAccepted(dobCheck)
+						? 'text-surface-500'
+						: 'text-error-500'}"
+				>
+					{dobMessage}
+				</span>
+			{:else if dateOfBirthUnlocksPrograms(age_group)}
+				<span class="mt-1 block text-xs text-surface-500">
+					Worth giving at {AGE_GROUP_LABELS[age_group]}: it is the only way to switch on the senior
+					strength programs, and the age is checked against the date rather than the age group.
+				</span>
+			{:else}
+				<span class="mt-1 block text-xs text-surface-500">
+					Checks your age against the strength-training content instead of guessing it from your age
+					group. You can add it later on your profile.
+				</span>
+			{/if}
+		</label>
 
 		<div>
 			<span class="text-xs tracking-wide text-surface-600-400 uppercase">Experience</span>
@@ -301,7 +366,8 @@
 		<button
 			type="button"
 			onclick={next}
-			class="preset-filled-primary-500 tap-target flex-1 rounded-xl py-3 font-semibold"
+			disabled={!canContinue}
+			class="preset-filled-primary-500 tap-target flex-1 rounded-xl py-3 font-semibold disabled:opacity-40"
 		>
 			Continue
 		</button>
